@@ -17486,7 +17486,7 @@ static int test_wc_PKCS7_DecodeEnvelopedData_stream(void)
 } /* END test_wc_PKCS7_DecodeEnvelopedData_stream() */
 
 /*
- * Testing wc_PKCS7_EncodeEnvelopedData()
+ * Testing wc_PKCS7_EncodeEnvelopedData(), wc_PKCS7_DecodeEnvelopedData()
  */
 static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
 {
@@ -18176,6 +18176,50 @@ static int test_wc_PKCS7_EncodeEncryptedData(void)
 #endif
     return EXPECT_RESULT();
 } /* END test_wc_PKCS7_EncodeEncryptedData() */
+
+
+/*
+ * Testing wc_PKCS7_DecodeEncryptedKeyPackage()
+ */
+static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
+{
+    EXPECT_DECLS;
+#if defined(HAVE_PKCS7)
+#if defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && \
+    !defined(NO_RSA) && !defined(NO_SHA)
+    {
+        PKCS7 * pkcs7 = NULL;
+        byte   out[10] = {0};
+        byte   *cms = NULL;
+        word32 cmsSz = 0;
+        XFILE  cmsFile = XBADFILE;
+
+        ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+        ExpectTrue((cmsFile = XFOPEN("/home/josh/work/custom_oid/ekp.der", "rb")) != XBADFILE);
+        cmsSz = (word32)FOURK_BUF;
+        ExpectNotNull(cms = (byte*)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
+        ExpectTrue((cmsSz = (word32)XFREAD(cms, 1, cmsSz, cmsFile)) > 0);
+        if (cmsFile != XBADFILE)
+            XFCLOSE(cmsFile);
+
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte*)client_cert_der_2048,
+            sizeof_client_cert_der_2048), 0);
+        if (pkcs7 != NULL) {
+            pkcs7->privateKey   = (byte*)client_key_der_2048;
+            pkcs7->privateKeySz = sizeof_client_key_der_2048;
+        }
+        ExpectIntLT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, cms, cmsSz, out, 6), 0);
+        ExpectIntGT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, cms, cmsSz, out, sizeof(out)), 0);
+        XFREE(cms, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
+        ExpectIntEQ(XMEMCMP(out, "testekp", 7), 0);
+        wc_PKCS7_Free(pkcs7);
+        pkcs7 = NULL;
+    }
+#endif /* USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
+#endif /* HAVE_PKCS7 */
+    return EXPECT_RESULT();
+} /* END test_wc_PKCS7_DecodeEncryptedKeyPackage() */
+
 
 /*
  * Testing wc_PKCS7_Degenerate()
@@ -67539,6 +67583,7 @@ TEST_CASE testCases[] = {
     TEST_DECL(test_wc_PKCS7_DecodeEnvelopedData_stream),
     TEST_DECL(test_wc_PKCS7_EncodeDecodeEnvelopedData),
     TEST_DECL(test_wc_PKCS7_EncodeEncryptedData),
+    TEST_DECL(test_wc_PKCS7_DecodeEncryptedKeyPackage),
     TEST_DECL(test_wc_PKCS7_Degenerate),
     TEST_DECL(test_wc_PKCS7_BER),
     TEST_DECL(test_wc_PKCS7_signed_enveloped),

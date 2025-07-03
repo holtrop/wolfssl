@@ -14878,6 +14878,53 @@ int wc_PKCS7_SetDecodeEncryptedCtx(wc_PKCS7* pkcs7, void* ctx)
 #endif /* NO_PKCS7_ENCRYPTED_DATA */
 
 
+/* Unwrap and decrypt PKCS#7/CMS EncryptedKeyPackage object, return decoded size. */
+WOLFSSL_API int wc_PKCS7_DecodeEncryptedKeyPackage(wc_PKCS7 * pkcs7,
+        byte * pkiMsg, word32 pkiMsgSz, byte * output, word32 outputSz)
+{
+    int ret = 0;
+    word32 pkiIndex = 0;
+    word32 contentType = 0;
+    int length = 0;
+
+    /* Expect a SEQUENCE header to start the EncryptedKeyPackage ContentInfo. */
+    if (GetSequence_ex(pkiMsg, &pkiIndex, &length, pkiMsgSz, 1) < 0) {
+        ret = ASN_PARSE_E;
+    }
+
+    /* Validate the EncryptedKeyPackage OBJECT IDENTIFIER. */
+    if (ret == 0 && wc_GetContentType(pkiMsg, &pkiIndex, &contentType, pkiMsgSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+
+    if (ret == 0 && contentType != ENCRYPTED_KEY_PACKAGE) {
+        WOLFSSL_MSG("PKCS#7 input not of type EncryptedKeyPackage");
+        ret = PKCS7_OID_E;
+    }
+
+    /* Expect content [0] tag */
+    if (ret == 0 && GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                &pkiIndex, &length, pkiMsgSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+
+    /* Expect EncryptedKeyPackage explicit CHOICE [0] tag. */
+    if (ret == 0 && GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                &pkiIndex, &length, pkiMsgSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+
+    if (ret == 0) {
+        /* We've made it to the EnvelopedData ContentInfo object within the
+         * EncryptedKeyPackage. */
+        ret = wc_PKCS7_DecodeEnvelopedData(pkcs7, &pkiMsg[pkiIndex],
+                pkiMsgSz - pkiIndex, output, outputSz);
+    }
+
+    return ret;
+}
+
+
 /* set stream mode for encoding and signing
  * returns 0 on success */
 int wc_PKCS7_SetStreamMode(wc_PKCS7* pkcs7, byte flag,
