@@ -18179,7 +18179,7 @@ static int test_wc_PKCS7_EncodeEncryptedData(void)
 
 
 #if defined(HAVE_PKCS7) && defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
-static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte * in_data, word32 in_size, int corrupt)
+static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte * in_data, word32 in_size, size_t test_vector)
 {
     /* EncryptedKeyPackage ContentType TLV DER */
     static const byte ekp_oid_tlv[] = {0x06u, 10u,
@@ -18206,7 +18206,14 @@ static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte *
     out[23] = in_size & 0xFFu;
     XMEMCPY(&out[24], in_data, in_size);
     *out_size = 24u + in_size;
-    (void)corrupt;
+    switch (test_vector)
+    {
+    case 1: out[0] = 0x20u; break;
+    case 2: out[4] = 0x01u; break;
+    case 3: out[9] = 0x42u; break;
+    case 4: out[16] = 0xA2u; break;
+    case 5: out[20] = 0x20u; break;
+    }
 }
 #endif /* HAVE_PKCS7 && USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
 
@@ -18217,6 +18224,15 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
 {
     EXPECT_DECLS;
 #if defined(HAVE_PKCS7) && defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
+    static const int test_vectors[] = {
+        0,
+        ASN_PARSE_E,
+        ASN_PARSE_E,
+        PKCS7_OID_E,
+        ASN_PARSE_E,
+        ASN_PARSE_E,
+    };
+    for (size_t test_vector = 0u; test_vector < (sizeof(test_vectors)/sizeof(test_vectors[0])); test_vector++)
     {
         byte * ekp_cms_der = NULL;
         word32 ekp_cms_der_size = 0u;
@@ -18225,6 +18241,7 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
         XFILE inner_cms_file = XBADFILE;
         PKCS7 * pkcs7 = NULL;
         byte out[10] = {0};
+        int result = 0;
 
         ExpectNotNull(ekp_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
         ExpectNotNull(inner_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
@@ -18233,7 +18250,7 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
         if (inner_cms_file != XBADFILE) {
             XFCLOSE(inner_cms_file);
         }
-        build_test_EncryptedKeyPackage(ekp_cms_der, &ekp_cms_der_size, inner_cms_der, inner_cms_der_size, 0);
+        build_test_EncryptedKeyPackage(ekp_cms_der, &ekp_cms_der_size, inner_cms_der, inner_cms_der_size, test_vector);
         XFREE(inner_cms_der, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
 
         ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
@@ -18242,10 +18259,18 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
             pkcs7->privateKey = (byte *)client_key_der_2048;
             pkcs7->privateKeySz = sizeof_client_key_der_2048;
         }
-        ExpectIntLT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, 3), 0);
-        ExpectIntGT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, sizeof(out)), 0);
+        result = wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, sizeof(out));
+        if (result == WC_PKCS7_WANT_READ_E) {
+            result = wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, sizeof(out));
+        }
+        if (test_vectors[test_vector] == 0u) {
+            ExpectIntGT(result, 0);
+            ExpectIntEQ(XMEMCMP(out, "test", 4), 0);
+        }
+        else {
+            ExpectIntEQ(result, test_vectors[test_vector]);
+        }
         XFREE(ekp_cms_der, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
-        ExpectIntEQ(XMEMCMP(out, "test", 4), 0);
         wc_PKCS7_Free(pkcs7);
     }
 #endif /* HAVE_PKCS7 && USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
