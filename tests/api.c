@@ -18178,42 +18178,74 @@ static int test_wc_PKCS7_EncodeEncryptedData(void)
 } /* END test_wc_PKCS7_EncodeEncryptedData() */
 
 
+static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte * in_data, word32 in_size, int corrupt)
+{
+    /* EncryptedKeyPackage ContentType TLV DER */
+    static const byte ekp_oid_tlv[] = {0x06u, 10u,
+        0x60u, 0x86u, 0x48u, 0x01u, 0x65u, 0x02u, 0x01u, 0x02u, 0x4Eu, 0x02u};
+    size_t ekp_choice_der_size = 4u + in_size;
+    size_t ekp_content_der_size = 4u + ekp_choice_der_size;
+    size_t ekp_content_info_size = sizeof(ekp_oid_tlv) + ekp_content_der_size;
+    /* EncryptedKeyPackage ContentType */
+    out[0] = 0x30u;
+    out[1] = 0x82u;
+    out[2] = ekp_content_info_size >> 8u;
+    out[3] = ekp_content_info_size & 0xFFu;
+    /* EncryptedKeyPackage ContentInfo */
+    XMEMCPY(&out[4], ekp_oid_tlv, sizeof(ekp_oid_tlv));
+    /* EncryptedKeyPackage content [0] */
+    out[16] = 0xA0u;
+    out[17] = 0x82u;
+    out[18] = ekp_choice_der_size >> 8u;
+    out[19] = ekp_choice_der_size & 0xFFu;
+    /* EncryptedKeyPackage CHOICE [0] */
+    out[20] = 0xA0u;
+    out[21] = 0x82u;
+    out[22] = in_size >> 8u;
+    out[23] = in_size & 0xFFu;
+    XMEMCPY(&out[24], in_data, in_size);
+    *out_size = 24u + in_size;
+    (void)corrupt;
+}
+
 /*
- * Testing wc_PKCS7_DecodeEncryptedKeyPackage()
+ * Test wc_PKCS7_DecodeEncryptedKeyPackage().
  */
 static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
 {
     EXPECT_DECLS;
 #if defined(HAVE_PKCS7)
-#if defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && \
-    !defined(NO_RSA) && !defined(NO_SHA)
+#if defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
     {
+        byte * ekp_cms_der = NULL;
+        word32 ekp_cms_der_size = 0u;
+        byte * inner_cms_der = NULL;
+        word32 inner_cms_der_size = (word32)FOURK_BUF;
+        XFILE inner_cms_file = XBADFILE;
         PKCS7 * pkcs7 = NULL;
-        byte   out[10] = {0};
-        byte   *cms = NULL;
-        word32 cmsSz = 0;
-        XFILE  cmsFile = XBADFILE;
+        byte out[10] = {0};
+
+        ExpectNotNull(ekp_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
+        ExpectNotNull(inner_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
+        ExpectTrue((inner_cms_file = XFOPEN("./certs/test/ktri-keyid-cms.msg", "rb")) != XBADFILE);
+        ExpectTrue((inner_cms_der_size = (word32)XFREAD(inner_cms_der, 1, inner_cms_der_size, inner_cms_file)) > 0);
+        if (inner_cms_file != XBADFILE) {
+            XFCLOSE(inner_cms_file);
+        }
+        build_test_EncryptedKeyPackage(ekp_cms_der, &ekp_cms_der_size, inner_cms_der, inner_cms_der_size, 0);
+        XFREE(inner_cms_der, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
 
         ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
-        ExpectTrue((cmsFile = XFOPEN("/home/josh/work/custom_oid/ekp.der", "rb")) != XBADFILE);
-        cmsSz = (word32)FOURK_BUF;
-        ExpectNotNull(cms = (byte*)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
-        ExpectTrue((cmsSz = (word32)XFREAD(cms, 1, cmsSz, cmsFile)) > 0);
-        if (cmsFile != XBADFILE)
-            XFCLOSE(cmsFile);
-
-        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte*)client_cert_der_2048,
-            sizeof_client_cert_der_2048), 0);
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte *)client_cert_der_2048, sizeof_client_cert_der_2048), 0);
         if (pkcs7 != NULL) {
-            pkcs7->privateKey   = (byte*)client_key_der_2048;
+            pkcs7->privateKey = (byte *)client_key_der_2048;
             pkcs7->privateKeySz = sizeof_client_key_der_2048;
         }
-        ExpectIntLT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, cms, cmsSz, out, 6), 0);
-        ExpectIntGT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, cms, cmsSz, out, sizeof(out)), 0);
-        XFREE(cms, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
-        ExpectIntEQ(XMEMCMP(out, "testekp", 7), 0);
+        ExpectIntLT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, 3), 0);
+        ExpectIntGT(wc_PKCS7_DecodeEncryptedKeyPackage(pkcs7, ekp_cms_der, ekp_cms_der_size, out, sizeof(out)), 0);
+        XFREE(ekp_cms_der, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
+        ExpectIntEQ(XMEMCMP(out, "test", 4), 0);
         wc_PKCS7_Free(pkcs7);
-        pkcs7 = NULL;
     }
 #endif /* USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
 #endif /* HAVE_PKCS7 */
