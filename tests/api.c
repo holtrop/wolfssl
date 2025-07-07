@@ -18178,6 +18178,7 @@ static int test_wc_PKCS7_EncodeEncryptedData(void)
 } /* END test_wc_PKCS7_EncodeEncryptedData() */
 
 
+#if defined(HAVE_PKCS7) && defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
 static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte * in_data, word32 in_size, int corrupt)
 {
     /* EncryptedKeyPackage ContentType TLV DER */
@@ -18207,6 +18208,7 @@ static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte *
     *out_size = 24u + in_size;
     (void)corrupt;
 }
+#endif /* HAVE_PKCS7 && USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
 
 /*
  * Test wc_PKCS7_DecodeEncryptedKeyPackage().
@@ -18214,8 +18216,7 @@ static void build_test_EncryptedKeyPackage(byte * out, word32 * out_size, byte *
 static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
 {
     EXPECT_DECLS;
-#if defined(HAVE_PKCS7)
-#if defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
+#if defined(HAVE_PKCS7) && defined(USE_CERT_BUFFERS_2048) && !defined(NO_DES3) && !defined(NO_RSA) && !defined(NO_SHA)
     {
         byte * ekp_cms_der = NULL;
         word32 ekp_cms_der_size = 0u;
@@ -18247,8 +18248,7 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
         ExpectIntEQ(XMEMCMP(out, "test", 4), 0);
         wc_PKCS7_Free(pkcs7);
     }
-#endif /* USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
-#endif /* HAVE_PKCS7 */
+#endif /* HAVE_PKCS7 && USE_CERT_BUFFERS_2048 && !NO_DES3 && !NO_RSA && !NO_SHA */
     return EXPECT_RESULT();
 } /* END test_wc_PKCS7_DecodeEncryptedKeyPackage() */
 
