@@ -14887,39 +14887,44 @@ WOLFSSL_API int wc_PKCS7_DecodeEncryptedKeyPackage(wc_PKCS7 * pkcs7,
     word32 contentType = 0;
     int length = 0;
 
-    /* Expect a SEQUENCE header to start the EncryptedKeyPackage ContentInfo. */
-    if (GetSequence_ex(pkiMsg, &pkiIndex, &length, pkiMsgSz, 1) < 0) {
-        ret = ASN_PARSE_E;
-    }
+    do {
+        /* Expect a SEQUENCE header to start the EncryptedKeyPackage ContentInfo. */
+        if (GetSequence_ex(pkiMsg, &pkiIndex, &length, pkiMsgSz, 1) < 0) {
+            ret = ASN_PARSE_E;
+            break;
+        }
 
-    /* Validate the EncryptedKeyPackage OBJECT IDENTIFIER. */
-    if (ret == 0 && wc_GetContentType(pkiMsg, &pkiIndex, &contentType, pkiMsgSz) < 0) {
-        ret = ASN_PARSE_E;
-    }
+        /* Validate the EncryptedKeyPackage OBJECT IDENTIFIER. */
+        if (wc_GetContentType(pkiMsg, &pkiIndex, &contentType, pkiMsgSz) < 0) {
+            ret = ASN_PARSE_E;
+            break;
+        }
 
-    if (ret == 0 && contentType != ENCRYPTED_KEY_PACKAGE) {
-        WOLFSSL_MSG("PKCS#7 input not of type EncryptedKeyPackage");
-        ret = PKCS7_OID_E;
-    }
+        if (contentType != ENCRYPTED_KEY_PACKAGE) {
+            WOLFSSL_MSG("PKCS#7 input not of type EncryptedKeyPackage");
+            ret = PKCS7_OID_E;
+            break;
+        }
 
-    /* Expect content [0] tag */
-    if (ret == 0 && GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
-                &pkiIndex, &length, pkiMsgSz) < 0) {
-        ret = ASN_PARSE_E;
-    }
+        /* Expect content [0] tag */
+        if (GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                    &pkiIndex, &length, pkiMsgSz) < 0) {
+            ret = ASN_PARSE_E;
+            break;
+        }
 
-    /* Expect EncryptedKeyPackage explicit CHOICE [0] tag. */
-    if (ret == 0 && GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
-                &pkiIndex, &length, pkiMsgSz) < 0) {
-        ret = ASN_PARSE_E;
-    }
+        /* Expect EncryptedKeyPackage explicit CHOICE [0] tag. */
+        if (GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                    &pkiIndex, &length, pkiMsgSz) < 0) {
+            ret = ASN_PARSE_E;
+            break;
+        }
 
-    if (ret == 0) {
         /* We've made it to the EnvelopedData ContentInfo object within the
          * EncryptedKeyPackage. */
         ret = wc_PKCS7_DecodeEnvelopedData(pkcs7, &pkiMsg[pkiIndex],
                 pkiMsgSz - pkiIndex, output, outputSz);
-    }
+    } while(0);
 
     return ret;
 }
