@@ -18292,9 +18292,12 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
             ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
             ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte *)client_cert_der_2048, sizeof_client_cert_der_2048), 0);
             if (pkcs7 != NULL) {
-                pkcs7->privateKey = (byte *)client_key_der_2048;
-                pkcs7->privateKeySz = sizeof_client_key_der_2048;
-                if (test_blob == 1) {
+                if (test_blob == 0) {
+                    /* To test EnvelopedData, set private key. */
+                    pkcs7->privateKey = (byte *)client_key_der_2048;
+                    pkcs7->privateKeySz = sizeof_client_key_der_2048;
+                }
+                else {
                     /* To test EncryptedData, set symmetric encryption key. */
                     pkcs7->encryptionKey = (byte *)key;
                     pkcs7->encryptionKeySz = sizeof(key);
