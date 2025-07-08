@@ -14913,17 +14913,20 @@ WOLFSSL_API int wc_PKCS7_DecodeEncryptedKeyPackage(wc_PKCS7 * pkcs7,
             break;
         }
 
-        /* Expect EncryptedKeyPackage explicit CHOICE [0] tag. */
+        /* Check for EncryptedKeyPackage explicit CHOICE [0] tag, indicating EnvelopedData subtype. */
         if (GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
-                    &pkiIndex, &length, pkiMsgSz) < 0) {
-            ret = ASN_PARSE_E;
-            break;
+                    &pkiIndex, &length, pkiMsgSz) >= 0) {
+            /* Explicit CHOICE [0] tag found. pkiIndex now should point to the
+             * EnvelopedData ContentInfo object within the EncryptedKeyPackage. */
+            ret = wc_PKCS7_DecodeEnvelopedData(pkcs7, &pkiMsg[pkiIndex],
+                    pkiMsgSz - pkiIndex, output, outputSz);
         }
-
-        /* We've made it to the EnvelopedData ContentInfo object within the
-         * EncryptedKeyPackage. */
-        ret = wc_PKCS7_DecodeEnvelopedData(pkcs7, &pkiMsg[pkiIndex],
-                pkiMsgSz - pkiIndex, output, outputSz);
+        else {
+            /* An explicit CHOICE [0] tag was not found. We do not currently
+             * support AuthEnvelopedData, so check if we have an EncryptedData blob. */
+            ret = wc_PKCS7_DecodeEncryptedData(pkcs7, &pkiMsg[pkiIndex],
+                    pkiMsgSz - pkiIndex, output, outputSz);
+        }
     } while(0);
 
     return ret;
