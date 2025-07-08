@@ -18279,7 +18279,6 @@ static int test_wc_PKCS7_DecodeEncryptedKeyPackage(void)
             byte out[15] = {0};
             int result = 0;
 
-            fprintf(stderr, "JH EKP %lu %lu\n", test_blob, test_vector);
             ExpectNotNull(ekp_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
             ExpectNotNull(inner_cms_der = (byte *)XMALLOC(FOURK_BUF, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER));
             ExpectTrue((inner_cms_file = XFOPEN(test_blobs[test_blob], "rb")) != XBADFILE);
