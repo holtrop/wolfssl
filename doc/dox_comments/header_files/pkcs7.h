@@ -312,8 +312,7 @@ int wc_PKCS7_EncodeSignedData_ex(PKCS7* pkcs7, const byte* hashBuf,
     \return 0 Returned on successfully extracting the information
     from the message
     \return BAD_FUNC_ARG Returned if one of the input parameters is invalid
-    \return ASN_PARSE_E Returned if there is an error parsing from the
-    given pkiMsg
+    \return ASN_PARSE_E Returned if there is an error parsing the given pkiMsg
     \return PKCS7_OID_E Returned if the given pkiMsg is not a signed data type
     \return ASN_VERSION_E Returned if the PKCS7 signer info is not version 1
     \return MEMORY_E Returned if there is an error allocating memory
@@ -390,8 +389,7 @@ int  wc_PKCS7_VerifySignedData(PKCS7* pkcs7,
     \return 0 Returned on successfully extracting the information
     from the message
     \return BAD_FUNC_ARG Returned if one of the input parameters is invalid
-    \return ASN_PARSE_E Returned if there is an error parsing from the
-    given pkiMsg
+    \return ASN_PARSE_E Returned if there is an error parsing the given pkiMsg
     \return PKCS7_OID_E Returned if the given pkiMsg is not a signed data type
     \return ASN_VERSION_E Returned if the PKCS7 signer info is not version 1
     \return MEMORY_E Returned if there is an error allocating memory
@@ -543,8 +541,7 @@ int  wc_PKCS7_EncodeEnvelopedData(PKCS7* pkcs7,
     \return On successfully extracting the information from the message,
     returns the bytes written to output
     \return BAD_FUNC_ARG Returned if one of the input parameters is invalid
-    \return ASN_PARSE_E Returned if there is an error parsing from the
-    given pkiMsg
+    \return ASN_PARSE_E Returned if there is an error parsing the given pkiMsg
     \return PKCS7_OID_E Returned if the given pkiMsg is not an enveloped
     data type
     \return ASN_VERSION_E Returned if the PKCS7 signer info is not version 0
@@ -622,8 +619,7 @@ int wc_PKCS7_DecodeEnvelopedData(PKCS7* pkcs7, byte* pkiMsg,
     \return On successfully extracting the information from the message,
     returns the bytes written to output
     \return BAD_FUNC_ARG Returned if one of the input parameters is invalid
-    \return ASN_PARSE_E Returned if there is an error parsing from the
-    given pkiMsg
+    \return ASN_PARSE_E Returned if there is an error parsing the given pkiMsg
     \return PKCS7_OID_E Returned if the given pkiMsg is not an encrypted
     data type
     \return ASN_VERSION_E Returned if the PKCS7 signer info is not version 0
@@ -670,15 +666,18 @@ int wc_PKCS7_DecodeEncryptedData(PKCS7* pkcs7, byte* pkiMsg,
     structure (via pkcs7->encryptionKey and pkcs7->encryptionKeySz). If the
     wrapped content type is EnvelopedData, the private key must be set in the
     pkcs7 input structure (via pkcs7->privateKey and pkcs7->privateKeySz).
+    A wrapped content type of AuthEnvelopedData is not currently supported.
 
-    In addition to the return codes documented here, this function could
-    return any error from wc_PKCS7_DecodeEnvelopedData() or
-    wc_PKCS7_DecodeEncryptedData().
+    This function will automatically call either wc_PKCS7_DecodeEnvelopedData()
+    or wc_PKCS7_DecodeEncryptedData() depending on the wrapped content type.
+    This function could also return any error code from either of those
+    functions in addition to the error codes listed here.
 
     \return On successfully extracting the information from the message,
     returns the bytes written to output
-    \return ASN_PARSE_E Returned if there is an error parsing from the
-    given pkiMsg
+    \return ASN_PARSE_E Returned if there is an error parsing the given pkiMsg
+    or if the wrapped content type is EncryptedData and support for
+    EncryptedData is not compiled in (e.g. NO_PKCS7_ENCRYPTED_DATA is set)
     \return PKCS7_OID_E Returned if the given pkiMsg is not an encrypted
     key package data type
 

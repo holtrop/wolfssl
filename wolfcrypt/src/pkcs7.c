@@ -14922,10 +14922,14 @@ WOLFSSL_API int wc_PKCS7_DecodeEncryptedKeyPackage(wc_PKCS7 * pkcs7,
                     pkiMsgSz - pkiIndex, output, outputSz);
         }
         else {
+#ifndef NO_PKCS7_ENCRYPTED_DATA
             /* An explicit CHOICE [0] tag was not found. We do not currently
              * support AuthEnvelopedData, so check if we have an EncryptedData blob. */
             ret = wc_PKCS7_DecodeEncryptedData(pkcs7, &pkiMsg[pkiIndex],
                     pkiMsgSz - pkiIndex, output, outputSz);
+#else
+            ret = ASN_PARSE_E;
+#endif
         }
     } while(0);
 
