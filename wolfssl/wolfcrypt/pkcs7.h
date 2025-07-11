@@ -503,9 +503,9 @@ WOLFSSL_API int  wc_PKCS7_AddRecipient_ORI(wc_PKCS7* pkcs7, CallbackOriEncrypt c
                                            int options);
 WOLFSSL_API int  wc_PKCS7_SetWrapCEKCb(wc_PKCS7* pkcs7,
         CallbackWrapCEK wrapCEKCb);
-WOLFSSL_API int  wc_PKC7_SetAESKeyWrapCb(wc_PKCS7* pkcs7,
+WOLFSSL_API int  wc_PKCS7_SetAESKeyWrapCb(wc_PKCS7* pkcs7,
         CallbackAESKeyWrap aesKeyWrapCb);
-WOLFSSL_API int  wc_PKC7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7,
+WOLFSSL_API int  wc_PKCS7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7,
         CallbackAESKeyWrap aesKeyUnwrapCb);
 
 #if defined(HAVE_PKCS7_RSA_RAW_SIGN_CALLBACK) && !defined(NO_RSA)

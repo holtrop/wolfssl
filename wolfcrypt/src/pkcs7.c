@@ -11093,7 +11093,7 @@ int wc_PKCS7_SetWrapCEKCb(wc_PKCS7* pkcs7, CallbackWrapCEK cb)
 
 
 /* return 0 on success */
-int wc_PKC7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb)
+int wc_PKCS7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb)
 {
     if (pkcs7 == NULL)
         return BAD_FUNC_ARG;
@@ -11105,7 +11105,7 @@ int wc_PKC7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb)
 
 
 /* return 0 on success */
-int  wc_PKC7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyUnwrapCb)
+int  wc_PKCS7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyUnwrapCb)
 {
     if (pkcs7 == NULL)
         return BAD_FUNC_ARG;

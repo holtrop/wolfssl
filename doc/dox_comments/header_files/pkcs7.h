@@ -501,9 +501,9 @@ int wc_PKCS7_VerifySignedData_ex(PKCS7* pkcs7, const byte* hashBuf,
     \param pkcs7 pointer to the PKCS7 structure
     \param aesKeyWrapCb pointer to custom AES key wrap function
 
-    \sa wc_PKC7_SetAESKeyUnwrapCb
+    \sa wc_PKCS7_SetAESKeyUnwrapCb
 */
-int wc_PKC7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb);
+int wc_PKCS7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb);
 
 /*!
     \ingroup PKCS7
@@ -517,9 +517,9 @@ int wc_PKC7_SetAESKeyWrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyWrapCb);
     \param pkcs7 pointer to the PKCS7 structure
     \param aesKeyUnwrapCb pointer to custom AES key unwrap function
 
-    \sa wc_PKC7_SetAESKeyWrapCb
+    \sa wc_PKCS7_SetAESKeyWrapCb
 */
-int wc_PKC7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyUnwrapCb);
+int wc_PKCS7_SetAESKeyUnwrapCb(wc_PKCS7* pkcs7, CallbackAESKeyWrap aesKeyUnwrapCb);
 
 /*!
     \ingroup PKCS7
