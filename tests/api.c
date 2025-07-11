@@ -17493,6 +17493,35 @@ static int test_wc_PKCS7_DecodeEnvelopedData_stream(void)
 #endif
 } /* END test_wc_PKCS7_DecodeEnvelopedData_stream() */
 
+static int wasAESKeyWrapCbCalled = 0;
+static int wasAESKeyUnwrapCbCalled = 0;
+
+static int testAESKeyWrapCb(const byte* key, word32 keySz,
+        const byte* in, word32 inSz, byte* out, word32 outSz)
+{
+    (void)key;
+    (void)keySz;
+    wasAESKeyWrapCbCalled = 1;
+    XMEMSET(out, 0xEE, outSz);
+    if (inSz <= outSz) {
+        XMEMCPY(out, in, inSz);
+    }
+    return inSz;
+}
+
+static int testAESKeyUnwrapCb(const byte* key, word32 keySz,
+        const byte* in, word32 inSz, byte* out, word32 outSz)
+{
+    (void)key;
+    (void)keySz;
+    wasAESKeyUnwrapCbCalled = 1;
+    XMEMSET(out, 0xEE, outSz);
+    if (inSz <= outSz) {
+        XMEMCPY(out, in, inSz);
+    }
+    return inSz;
+}
+
 /*
  * Testing wc_PKCS7_EncodeEnvelopedData(), wc_PKCS7_DecodeEnvelopedData()
  */
@@ -17510,7 +17539,7 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
     word32      tempWrd32   = 0;
     byte*       tmpBytePtr = NULL;
     const char  input[] = "Test data to encode.";
-    int         i;
+    int         test_id;
     int         testSz = 0;
     #if !defined(NO_RSA) && (!defined(NO_AES) || (!defined(NO_SHA) || \
         !defined(NO_SHA256) || defined(WOLFSSL_SHA512)))
@@ -17703,30 +17732,30 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
     ExpectIntEQ(wc_PKCS7_Init(pkcs7, HEAP_HINT, testDevId), 0);
 
     testSz = (int)sizeof(testVectors)/(int)sizeof(pkcs7EnvelopedVector);
-    for (i = 0; i < testSz; i++) {
+    for (test_id = 0; test_id < testSz; test_id++) {
     #ifdef ASN_BER_TO_DER
         encodeSignedDataStream strm;
 
         /* test setting stream mode, the first one using IO callbacks */
-        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (testVectors + i)->cert,
-                                    (word32)(testVectors + i)->certSz), 0);
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, testVectors[test_id].cert,
+                                    (word32)testVectors[test_id].certSz), 0);
         if (pkcs7 != NULL) {
         #ifdef ECC_TIMING_RESISTANT
             pkcs7->rng = &rng;
         #endif
 
-            if (i != 0)
-                pkcs7->content       = (byte*)(testVectors + i)->content;
-            pkcs7->contentSz     = (testVectors + i)->contentSz;
-            pkcs7->contentOID    = (testVectors + i)->contentOID;
-            pkcs7->encryptOID    = (testVectors + i)->encryptOID;
-            pkcs7->keyWrapOID    = (testVectors + i)->keyWrapOID;
-            pkcs7->keyAgreeOID   = (testVectors + i)->keyAgreeOID;
-            pkcs7->privateKey    = (testVectors + i)->privateKey;
-            pkcs7->privateKeySz  = (testVectors + i)->privateKeySz;
+            if (test_id != 0)
+                pkcs7->content       = (byte*)testVectors[test_id].content;
+            pkcs7->contentSz     = testVectors[test_id].contentSz;
+            pkcs7->contentOID    = testVectors[test_id].contentOID;
+            pkcs7->encryptOID    = testVectors[test_id].encryptOID;
+            pkcs7->keyWrapOID    = testVectors[test_id].keyWrapOID;
+            pkcs7->keyAgreeOID   = testVectors[test_id].keyAgreeOID;
+            pkcs7->privateKey    = testVectors[test_id].privateKey;
+            pkcs7->privateKeySz  = testVectors[test_id].privateKeySz;
         }
 
-        if (i == 0) {
+        if (test_id == 0) {
             XMEMSET(&strm, 0, sizeof(strm));
             strm.chunkSz = FOURK_BUF;
             ExpectIntEQ(wc_PKCS7_SetStreamMode(pkcs7, 1, GetContentCB,
@@ -17739,7 +17768,13 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
                 (word32)sizeof(output));
         }
 
-        switch ((testVectors + i)->encryptOID) {
+        /* Test custom AES key wrap/unwrap callback as part of test_id 1 */
+        if (test_id == 1) {
+            ExpectIntEQ(wc_PKCS7_SetAESKeyWrapCb(pkcs7, testAESKeyWrapCb), 0);
+            ExpectIntEQ(wc_PKCS7_SetAESKeyUnwrapCb(pkcs7, testAESKeyUnwrapCb), 0);
+        }
+
+        switch (testVectors[test_id].encryptOID) {
         #ifndef NO_DES3
             case DES3b:
             case DESb:
@@ -17768,7 +17803,7 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
         }
 
         if (encodedSz > 0) {
-            if (i == 0) {
+            if (test_id == 0) {
                 decodedSz = wc_PKCS7_DecodeEnvelopedData(pkcs7,
                     strm.out, (word32)encodedSz, decoded,
                     (word32)sizeof(decoded));
@@ -17786,21 +17821,21 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
         ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
     #endif
 
-        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (testVectors + i)->cert,
-                                    (word32)(testVectors + i)->certSz), 0);
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, testVectors[test_id].cert,
+                                    (word32)testVectors[test_id].certSz), 0);
         if (pkcs7 != NULL) {
 #ifdef ECC_TIMING_RESISTANT
             pkcs7->rng = &rng;
 #endif
 
-            pkcs7->content       = (byte*)(testVectors + i)->content;
-            pkcs7->contentSz     = (testVectors + i)->contentSz;
-            pkcs7->contentOID    = (testVectors + i)->contentOID;
-            pkcs7->encryptOID    = (testVectors + i)->encryptOID;
-            pkcs7->keyWrapOID    = (testVectors + i)->keyWrapOID;
-            pkcs7->keyAgreeOID   = (testVectors + i)->keyAgreeOID;
-            pkcs7->privateKey    = (testVectors + i)->privateKey;
-            pkcs7->privateKeySz  = (testVectors + i)->privateKeySz;
+            pkcs7->content       = (byte*)testVectors[test_id].content;
+            pkcs7->contentSz     = testVectors[test_id].contentSz;
+            pkcs7->contentOID    = testVectors[test_id].contentOID;
+            pkcs7->encryptOID    = testVectors[test_id].encryptOID;
+            pkcs7->keyWrapOID    = testVectors[test_id].keyWrapOID;
+            pkcs7->keyAgreeOID   = testVectors[test_id].keyAgreeOID;
+            pkcs7->privateKey    = testVectors[test_id].privateKey;
+            pkcs7->privateKeySz  = testVectors[test_id].privateKeySz;
         }
 
     #ifdef ASN_BER_TO_DER
@@ -17817,8 +17852,15 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
         /* Verify the size of each buffer. */
         ExpectIntEQ((word32)sizeof(input)/sizeof(char), decodedSz);
 
+        if (test_id == 1) {
+            ExpectIntEQ(wasAESKeyWrapCbCalled, 1);
+            ExpectIntEQ(wasAESKeyUnwrapCbCalled, 1);
+            ExpectIntEQ(wc_PKCS7_SetAESKeyWrapCb(pkcs7, NULL), 0);
+            ExpectIntEQ(wc_PKCS7_SetAESKeyUnwrapCb(pkcs7, NULL), 0);
+        }
+
         /* Don't free the last time through the loop. */
-        if (i < testSz - 1) {
+        if (test_id < testSz - 1) {
             wc_PKCS7_Free(pkcs7);
             pkcs7 = NULL;
             ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
