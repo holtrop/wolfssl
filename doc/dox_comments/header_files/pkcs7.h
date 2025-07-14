@@ -6,6 +6,10 @@
     key/keySz specify the key to use.
     in/inSz specify the input data to wrap/unwrap.
     out/outSz specify the output buffer.
+
+    The size of the wrapped/unwrapped key written to the output buffer should
+    be returned on success. A 0 return value or error code (< 0) indicates a
+    failure.
 */
 typedef int (*CallbackAESKeyWrap)(const byte* key, word32 keySz,
         const byte* in, word32 inSz, byte* out, word32 outSz);
