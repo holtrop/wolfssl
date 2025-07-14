@@ -17755,6 +17755,14 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
             pkcs7->privateKeySz  = testVectors[test_id].privateKeySz;
         }
 
+        /* Test custom AES key wrap/unwrap callback */
+        if (testVectors[test_id].keyWrapOID == AES256_WRAP) {
+            pkcs7->singleCert = testVectors[test_id].cert;
+            pkcs7->singleCertSz = testVectors[test_id].certSz;
+            ExpectIntEQ(wc_PKCS7_SetAESKeyWrapCb(pkcs7, testAESKeyWrapCb), 0);
+            ExpectIntEQ(wc_PKCS7_SetAESKeyUnwrapCb(pkcs7, testAESKeyUnwrapCb), 0);
+        }
+
         if (test_id == 0) {
             XMEMSET(&strm, 0, sizeof(strm));
             strm.chunkSz = FOURK_BUF;
@@ -17766,12 +17774,6 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
             ExpectIntEQ(wc_PKCS7_SetStreamMode(pkcs7, 1, NULL, NULL, NULL), 0);
             encodedSz = wc_PKCS7_EncodeEnvelopedData(pkcs7, output,
                 (word32)sizeof(output));
-        }
-
-        /* Test custom AES key wrap/unwrap callback as part of test_id 1 */
-        if (test_id == 1) {
-            ExpectIntEQ(wc_PKCS7_SetAESKeyWrapCb(pkcs7, testAESKeyWrapCb), 0);
-            ExpectIntEQ(wc_PKCS7_SetAESKeyUnwrapCb(pkcs7, testAESKeyUnwrapCb), 0);
         }
 
         switch (testVectors[test_id].encryptOID) {
@@ -17852,7 +17854,7 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
         /* Verify the size of each buffer. */
         ExpectIntEQ((word32)sizeof(input)/sizeof(char), decodedSz);
 
-        if (test_id == 1) {
+        if (testVectors[test_id].keyWrapOID == AES256_WRAP) {
             ExpectIntEQ(wasAESKeyWrapCbCalled, 1);
             ExpectIntEQ(wasAESKeyUnwrapCbCalled, 1);
             ExpectIntEQ(wc_PKCS7_SetAESKeyWrapCb(pkcs7, NULL), 0);
