@@ -2204,7 +2204,7 @@ WOLFSSL_LOCAL const char* GetOneCertName(CertName* name, int idx);
 WOLFSSL_LOCAL byte GetCertNameId(int idx);
 #endif
 WOLFSSL_TEST_VIS int GetShortInt(const byte* input, word32* inOutIdx,
-        int* number, word32 maxIdx);
+        sword32 * number, word32 maxIdx);
 WOLFSSL_TEST_VIS int SetShortInt(byte* output, word32* inOutIdx,
         sword32 number, word32 maxIdx);
 

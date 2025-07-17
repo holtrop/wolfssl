@@ -488,7 +488,7 @@ static int GetSignData(WC_PKCS12* pkcs12, const byte* mem, word32* idx,
     /* check for MAC iterations, default to 1 */
     mac->itt = WC_PKCS12_MAC_DEFAULT;
     if (curIdx < totalSz) {
-        int number = 0;
+        sword32 number = 0;
         if (GetShortInt(mem, &curIdx, &number, totalSz) >= 0) {
             /* found a iteration value */
             mac->itt = number;
@@ -1165,7 +1165,8 @@ static int PKCS12_CheckConstructedZero(byte* data, word32 dataSz, word32* idx)
 {
     word32 oid;
     int    ret = 0;
-    int    number, size = 0;
+    sword32 number = 0;
+    int    size = 0;
     byte   tag = 0;
 
     if (GetSequence(data, idx, &size, dataSz) < 0) {
@@ -1360,7 +1361,7 @@ int wc_PKCS12_parse_ex(WC_PKCS12* pkcs12, const char* psw,
         data = ci->data;
 
         if (ci->type == WC_PKCS12_ENCRYPTED_DATA) {
-            int number;
+            sword32 number;
 
             WOLFSSL_MSG("Decrypting PKCS12 Content Info Container");
             if (GetASNTag(data, &idx, &tag, ci->dataSz) < 0) {

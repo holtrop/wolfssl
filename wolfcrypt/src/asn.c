@@ -3221,7 +3221,8 @@ int GetMyVersion(const byte* input, word32* inOutIdx,
  * @return  BUFFER_E when data in buffer is too small.
  * @return  ASN_EXPECT_0_E when the most significant bit is set.
  */
-int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
+int GetShortInt(const byte* input, word32* inOutIdx, sword32 * number,
+        word32 maxIdx)
 {
 #ifndef WOLFSSL_ASN_TEMPLATE
     word32 idx = *inOutIdx;
@@ -3272,7 +3273,7 @@ int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
                        maxIdx);
     if (ret == 0) {
         /* Return integer value through out pointer. */
-        *number = (int)num;
+        *number = (sword32)num;
     }
     return ret;
 #endif
@@ -9975,7 +9976,7 @@ int DecryptContent(byte* input, word32 sz, const char* password, int passwordSz)
 #ifndef WOLFSSL_ASN_TEMPLATE
     word32 inOutIdx = 0, seqEnd, oid, shaOid = 0;
     int    ret = 0, first, second, length = 0, version, saltSz, id = 0;
-    int    iterations = 0, keySz = 0;
+    sword32 iterations = 0, keySz = 0;
 #ifdef WOLFSSL_SMALL_STACK
     byte*  salt = NULL;
     byte*  cbcIv = NULL;
