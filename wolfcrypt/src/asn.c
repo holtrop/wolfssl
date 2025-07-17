@@ -1289,8 +1289,15 @@ static int GetASN_StoreData(const ASNItem* asn, ASNGetData* data,
             #endif
                 return ASN_PARSE_E;
             }
+            else if (zeroPadded && len == 2 && (input[idx] & 0x80U) != 0U) {
+                /* Value is >= 0x8000 which is too large for a sword16. */
+            #ifdef WOLFSSL_DEBUG_ASN_TEMPLATE
+                WOLFSSL_MSG_VSNPRINTF("Value too large for sword16");
+            #endif
+                return ASN_PARSE_E;
+            }
             /* Fill number with all of data. */
-            {
+            else {
                 sword16 v = 0;
                 if (!zeroPadded && (input[idx] & 0x80U) != 0U) {
                     v = -1;
@@ -1309,8 +1316,15 @@ static int GetASN_StoreData(const ASNItem* asn, ASNGetData* data,
             #endif
                 return ASN_PARSE_E;
             }
+            else if (zeroPadded && len == 4 && (input[idx] & 0x80U) != 0U) {
+                /* Value is >= 0x8000_0000 which is too large for a sword32. */
+            #ifdef WOLFSSL_DEBUG_ASN_TEMPLATE
+                WOLFSSL_MSG_VSNPRINTF("Value too large for sword32");
+            #endif
+                return ASN_PARSE_E;
+            }
             /* Fill number with all of data. */
-            {
+            else {
                 sword32 v = 0;
                 if (!zeroPadded && (input[idx] & 0x80U) != 0U) {
                     v = -1;
@@ -3290,39 +3304,26 @@ int SetShortInt(byte* output, word32* inOutIdx, sword32 number, word32 maxIdx)
 {
     word32 idx = *inOutIdx;
     word32 len;
-    int    i;
-    word32 extraByte = 0;
+    word32 strip = 0U;
 
-    if (number == 0)
-        len = 1;
-    else
-        len = BytePrecision(number);
+    if (number < 0)
+        strip = 0x1FFU;
 
-    /* clarify the len range to prepare for the next right bit shifting */
-    if (len < 1 || len > sizeof(number)) {
-        return ASN_PARSE_E;
-    }
-    if (number >> (WOLFSSL_BIT_SIZE * len - 1)) {
-        /* Need one byte of zero value not to be negative number */
-        extraByte = 1;
+    /* Determine value length. */
+    for (len = 4; len > 1; len--) {
+        if (((number >> ((len - 1) * WOLFSSL_BIT_SIZE - 1)) & 0x1FF) != strip)
+            break;
     }
 
     /* check for room for type and length bytes. */
-    if ((idx + 2 + extraByte + len) > maxIdx)
+    if ((idx + 2 + len) > maxIdx)
         return BUFFER_E;
 
-    /* check that MAX_SHORT_SZ allows this size of ShortInt. */
-    if (2 + extraByte + len > MAX_SHORT_SZ)
-        return ASN_PARSE_E;
-
     output[idx++] = ASN_INTEGER;
-    output[idx++] = (byte)(len + extraByte);
-    if (extraByte) {
-        output[idx++] = 0x00;
-    }
+    output[idx++] = (byte)len;
 
-    for (i = (int)len - 1; i >= 0; --i)
-        output[idx++] = (byte)(number >> (i * WOLFSSL_BIT_SIZE));
+    for (; len > 0; len--)
+        output[idx++] = (byte)(number >> ((len - 1) * WOLFSSL_BIT_SIZE));
 
     len = idx - *inOutIdx;
     *inOutIdx = idx;

@@ -36,6 +36,7 @@ static int test_SetShortInt_once(sword32 val, byte* valDer, word32 valDerSz)
     word32 outDerSz = 0;
     word32 inOutIdx = 0;
     word32 maxIdx = MAX_SHORT_SZ;
+    sword32 decodedVal = 0;
 
     ExpectIntLE(2 + valDerSz, MAX_SHORT_SZ);
     ExpectIntEQ(outDerSz = SetShortInt(outDer, &inOutIdx, val, maxIdx),
@@ -43,6 +44,11 @@ static int test_SetShortInt_once(sword32 val, byte* valDer, word32 valDerSz)
     ExpectIntEQ(outDer[0], ASN_INTEGER);
     ExpectIntEQ(outDer[1], valDerSz);
     ExpectIntEQ(XMEMCMP(outDer + 2, valDer, valDerSz), 0);
+
+    /* Verify we decode the same value that we just encoded. */
+    inOutIdx = 0;
+    ExpectIntEQ(GetShortInt(outDer, &inOutIdx, &decodedVal, maxIdx), 0);
+    ExpectIntEQ(decodedVal, val);
 
 #endif /* !WOLFSSL_ASN_TEMPLATE || HAVE_PKCS8 || HAVE_PKCS12 */
 #endif /* !NO_PWDBASED */
@@ -105,12 +111,11 @@ int test_SetShortInt(void)
         EXPECT_TEST(test_SetShortInt_once(0x01000000, valDer, 4));
 
         /* Input 4 bytes max */
-        valDer[0] = 0x00;
+        valDer[0] = 0x7f;
         valDer[1] = 0xff;
         valDer[2] = 0xff;
         valDer[3] = 0xff;
-        valDer[4] = 0xff;
-        EXPECT_TEST(test_SetShortInt_once(0xffffffff, valDer, 5));
+        EXPECT_TEST(test_SetShortInt_once(0x7fffffff, valDer, 4));
     }
 
     /* Corner tests for output size */
@@ -150,22 +155,43 @@ int test_SetShortInt(void)
         valDer[3] = 0x00;
         EXPECT_TEST(test_SetShortInt_once(0x800000, valDer, 4));
 
-        /* Output 4 bytes max */
-        valDer[0] = 0x7f;
-        valDer[1] = 0xff;
-        valDer[2] = 0xff;
-        valDer[3] = 0xff;
-        EXPECT_TEST(test_SetShortInt_once(0x7fffffff, valDer, 4));
-
-        /* Output 5 bytes min */
-        valDer[0] = 0x00;
-        valDer[1] = 0x80;
+        /* Output 4 bytes min */
+        valDer[0] = 0x80;
+        valDer[1] = 0x00;
         valDer[2] = 0x00;
         valDer[3] = 0x00;
-        valDer[4] = 0x00;
-        EXPECT_TEST(test_SetShortInt_once(0x80000000, valDer, 5));
+        EXPECT_TEST(test_SetShortInt_once(0x80000000, valDer, 4));
 
-        /* Skip "Output 5 bytes max" because of same as "Input 4 bytes max" */
+        /* Test negative value encoding. */
+        valDer[0] = 0xff;
+        EXPECT_TEST(test_SetShortInt_once(0xffffffff, valDer, 1));
+
+        valDer[0] = 0xff;
+        valDer[1] = 0x55;
+        EXPECT_TEST(test_SetShortInt_once(0xffffff55, valDer, 2));
+
+        valDer[0] = 0xff;
+        valDer[1] = 0x55;
+        valDer[2] = 0x55;
+        EXPECT_TEST(test_SetShortInt_once(0xffff5555, valDer, 3));
+
+        valDer[0] = 0xff;
+        valDer[1] = 0x55;
+        valDer[2] = 0x55;
+        valDer[3] = 0x55;
+        EXPECT_TEST(test_SetShortInt_once(0xff555555, valDer, 4));
+
+        valDer[0] = 0x80;
+        EXPECT_TEST(test_SetShortInt_once(0xffffff80, valDer, 1));
+
+        valDer[0] = 0x80;
+        valDer[1] = 0x00;
+        EXPECT_TEST(test_SetShortInt_once(0xffff8000, valDer, 2));
+
+        valDer[0] = 0x80;
+        valDer[1] = 0x00;
+        valDer[2] = 0x00;
+        EXPECT_TEST(test_SetShortInt_once(0xff800000, valDer, 3));
     }
 
     /* Extra tests */
