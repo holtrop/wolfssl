@@ -3285,7 +3285,7 @@ int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
      defined(HAVE_PKCS12)
 /* Set small integer, 32 bits or less. DER encoding with no leading 0s
  * returns total amount written including ASN tag and length byte on success */
-int SetShortInt(byte* output, word32* inOutIdx, word32 number, word32 maxIdx)
+int SetShortInt(byte* output, word32* inOutIdx, sword32 number, word32 maxIdx)
 {
     word32 idx = *inOutIdx;
     word32 len;
@@ -9646,7 +9646,7 @@ int wc_EncryptPKCS8Key_ex(byte* key, word32 keySz, byte* out, word32* outSz,
     if (ret == 0) {
         padSz = (word32)((blockSz - ((int)keySz & (blockSz - 1))) &
             (blockSz - 1));
-        ret = SetShortInt(tmpShort, &tmpIdx, (word32)itt, MAX_SHORT_SZ);
+        ret = SetShortInt(tmpShort, &tmpIdx, itt, MAX_SHORT_SZ);
         if (ret > 0) {
             /* inner = OCT salt INT itt */
             innerLen = 2 + saltSz + (word32)ret;
@@ -9748,7 +9748,7 @@ int wc_EncryptPKCS8Key_ex(byte* key, word32 keySz, byte* out, word32* outSz,
         idx += SetSequence(innerLen, out + idx);
         idx += SetOctetString(saltSz, out + idx);
         XMEMCPY(out + idx, salt, saltSz); idx += saltSz;
-        ret = SetShortInt(out, &idx, (word32)itt, *outSz);
+        ret = SetShortInt(out, &idx, itt, *outSz);
         if (ret > 0)
             ret = 0;
         if (version == PKCS5v2) {
@@ -10618,7 +10618,7 @@ int EncryptContent(byte* input, word32 inputSz, byte* out, word32* outSz,
     seqSz += sz;
 
     tmpIdx = 0;
-    ret = SetShortInt(shr, &tmpIdx, (word32)itt, maxShr);
+    ret = SetShortInt(shr, &tmpIdx, itt, maxShr);
     if (ret >= 0) {
         seqSz += (word32)ret;
     }
@@ -10672,7 +10672,7 @@ int EncryptContent(byte* input, word32 inputSz, byte* out, word32* outSz,
     inOutIdx += saltSz;
 
     /* place iteration setting in buffer */
-    ret = SetShortInt(out, &inOutIdx, (word32)itt, *outSz);
+    ret = SetShortInt(out, &inOutIdx, itt, *outSz);
     if (ret < 0) {
     #ifdef WOLFSSL_SMALL_STACK
         XFREE(saltTmp, heap, DYNAMIC_TYPE_TMP_BUFFER);

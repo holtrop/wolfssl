@@ -24,7 +24,7 @@
 #include <tests/api/test_asn.h>
 
 #ifndef NO_ASN
-static int test_SetShortInt_once(word32 val, byte* valDer, word32 valDerSz)
+static int test_SetShortInt_once(sword32 val, byte* valDer, word32 valDerSz)
 {
     EXPECT_DECLS;
 

@@ -888,7 +888,7 @@ int wc_i2d_PKCS12(WC_PKCS12* pkcs12, byte** der, int* derSz)
             outerSz += mac->saltSz;
 
             /* MAC iterations */
-            ret = SetShortInt(ASNSHORT, &tmpIdx, (word32)mac->itt, MAX_SHORT_SZ);
+            ret = SetShortInt(ASNSHORT, &tmpIdx, mac->itt, MAX_SHORT_SZ);
             if (ret >= 0) {
                 outerSz += (word32)ret;
                 ret = 0;
@@ -943,7 +943,7 @@ int wc_i2d_PKCS12(WC_PKCS12* pkcs12, byte** der, int* derSz)
                 int tmpSz;
                 word32 tmpIdx = 0;
                 byte ar[MAX_SHORT_SZ];
-                tmpSz = SetShortInt(ar, &tmpIdx, (word32)mac->itt, MAX_SHORT_SZ);
+                tmpSz = SetShortInt(ar, &tmpIdx, mac->itt, MAX_SHORT_SZ);
                 if (tmpSz < 0) {
                     ret = tmpSz;
                 }
