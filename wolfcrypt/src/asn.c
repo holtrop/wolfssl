@@ -1290,10 +1290,15 @@ static int GetASN_StoreData(const ASNItem* asn, ASNGetData* data,
                 return ASN_PARSE_E;
             }
             /* Fill number with all of data. */
-            *data->data.u16 = 0;
-            for (i = 0; i < len; i++) {
-                *data->data.u16 = (word16)(*data->data.u16 << 8U);
-                *data->data.u16 = (word16)(*data->data.u16 | input[idx + (word32)i]);
+            {
+                sword16 v = 0;
+                if (!zeroPadded && (input[idx] & 0x80U) != 0U) {
+                    v = -1;
+                }
+                for (i = 0; i < len; i++) {
+                    v = (v << 8U) | (sword16)(word16)input[idx + (word32)i];
+                }
+                *data->data.u16 = (word16)v;
             }
             break;
         case ASN_DATA_TYPE_WORD32:
@@ -1305,10 +1310,15 @@ static int GetASN_StoreData(const ASNItem* asn, ASNGetData* data,
                 return ASN_PARSE_E;
             }
             /* Fill number with all of data. */
-            *data->data.u32 = 0;
-            for (i = 0; i < len; i++) {
-                *data->data.u32 <<= 8;
-                *data->data.u32 |= input[idx + (word32)i] ;
+            {
+                sword32 v = 0;
+                if (!zeroPadded && (input[idx] & 0x80U) != 0U) {
+                    v = -1;
+                }
+                for (i = 0; i < len; i++) {
+                    v = (v << 8U) | (sword32)(word32)input[idx + (word32)i];
+                }
+                *data->data.u32 = (word32)v;
             }
             break;
 
@@ -3218,8 +3228,6 @@ int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
     word32 len;
     byte   tag;
 
-    *number = 0;
-
     /* check for type and length bytes */
     if ((idx + 2) > maxIdx)
         return BUFFER_E;
@@ -3237,13 +3245,20 @@ int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
     if (len + idx > maxIdx)
         return ASN_PARSE_E;
 
+    if (input[idx] >= 0x80u) {
+        *number = -1;
+    }
+    else {
+        *number = 0;
+    }
+
     while (len--) {
         *number  = *number << 8 | input[idx++];
     }
 
     *inOutIdx = idx;
 
-    return *number;
+    return 0;
 #else
     ASNGetData dataASN[intASN_Length];
     int ret;
@@ -3256,9 +3271,8 @@ int GetShortInt(const byte* input, word32* inOutIdx, int* number, word32 maxIdx)
     ret = GetASN_Items(intASN, dataASN, intASN_Length, 0, input, inOutIdx,
                        maxIdx);
     if (ret == 0) {
-        /* Return number through variable and return value. */
+        /* Return integer value through out pointer. */
         *number = (int)num;
-        ret = (int)num;
     }
     return ret;
 #endif
