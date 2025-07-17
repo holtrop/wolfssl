@@ -3260,7 +3260,7 @@ int GetShortInt(const byte* input, word32* inOutIdx, sword32 * number,
     if (len + idx > maxIdx)
         return ASN_PARSE_E;
 
-    if (input[idx] >= 0x80u) {
+    if (input[idx] >= 0x80U) {
         *number = -1;
     }
     else {
