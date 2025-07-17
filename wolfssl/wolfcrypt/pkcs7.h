@@ -552,6 +552,12 @@ WOLFSSL_API int wc_PKCS7_DecodeCompressedData(wc_PKCS7* pkcs7, byte* pkiMsg,
                                               word32 outputSz);
 #endif /* HAVE_LIBZ && !NO_PKCS7_COMPRESSED_DATA */
 
+WOLFSSL_API int wc_PKCS7_DecodeSymmetricKeyPackageAttribute(byte * pkiMsg,
+        word32 pkiMsgSz, size_t index, byte * output, word32 outputSz,
+        word32 * length)
+WOLFSSL_API int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte * pkiMsg,
+        word32 pkiMsgSz, size_t index, byte * output, word32 outputSz);
+
 #ifdef __cplusplus
     } /* extern "C" */
 #endif

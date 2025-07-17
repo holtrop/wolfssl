@@ -15305,6 +15305,69 @@ int wc_PKCS7_DecodeCompressedData(wc_PKCS7* pkcs7, byte* pkiMsg,
 
 #endif /* HAVE_LIBZ && !NO_PKCS7_COMPRESSED_DATA */
 
+int wc_PKCS7_DecodeSymmetricKeyPackageAttribute(byte * pkiMsg, word32 pkiMsgSz,
+        size_t index, byte * output, word32 outputSz, word32 * length)
+{
+    int ret = 0;
+    word32 pkiIndex = 0;
+    int length = 0;
+
+    if (pkiMsg == NULL || output == NULL) {
+        ret = BAD_FUNC_ARG;
+    }
+    /* Expect a SEQUENCE header to start the SymmetricKeyPackage object. */
+    else if (GetSequence(pkiMsg, &pkiIndex, &length, pkiMsgSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Expect version v1 */
+    else if (GetASNInt(pkiMsg, &pkiIndex, &length, pkiMsgSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    else if (length != 1) {
+        ret = ASN_PARSE_E;
+    }
+    else if (pkiMsg[pkiIndex++] != 1) {
+        ret = ASN_PARSE_E;
+    }
+    /* A sKeyPkgAttrs [0] tag holds SymmetricKeyPackage attributes */
+    else if (GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                &pkiIndex, &length, pkiMsgSz) < 0) {
+        ret = BAD_INDEX_E;
+    }
+    else {
+        /* sKeyPkgAttrs is present at &pkiMsg[pkiIndex], length in length */
+        byte tagFound;
+        int attr_length;
+        int end_of_attributes = pkiIndex + length;
+        while (index > 0) {
+            if (GetASNTag(pkiMsg, &pkiIndex, &tagFound, pkiMsgSz) != 0) {
+                ret = ASN_PARSE_E;
+                break;
+            }
+            /* Get the encoded length. */
+            if (GetLength(pkiMsg, &pkiIndex, &attr_length, maxIdx) < 0) {
+                ret = ASN_PARSE_E;
+                break;
+            }
+            pkiIndex += attr_length;
+            if (pkiIndex >= end_of_attributes) {
+                ret = BAD_INDEX_E;
+                break;
+            }
+            index--;
+        }
+        if (ret == 0) {
+        }
+    }
+
+    return ret;
+}
+
+int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte * pkiMsg,
+        word32 pkiMsgSz, size_t index, byte * output, word32 outputSz)
+{
+}
+
 #else  /* HAVE_PKCS7 */
 
 
