@@ -641,9 +641,6 @@ const char* wc_GetErrorString(int error)
     case WC_KEY_MISMATCH_E:
         return "key values mismatch";
 
-    case BAD_INDEX_E:
-        return "Bad index";
-
     case DEADLOCK_AVERTED_E:
         return "Deadlock averted -- retry the call";
 
@@ -652,6 +649,9 @@ const char* wc_GetErrorString(int error)
 
     case WC_ACCEL_INHIBIT_E:
         return "Crypto acceleration is currently inhibited";
+
+    case BAD_INDEX_E:
+        return "Bad index";
 
     case MAX_CODE_E:
     case WC_SPAN1_MIN_CODE_E:

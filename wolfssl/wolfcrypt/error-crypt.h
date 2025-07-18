@@ -136,8 +136,7 @@ enum wolfCrypt_ErrorCodes {
     ED448_KAT_FIPS_E   = -164,  /* Ed448 Known answer test failure */
     PBKDF2_KAT_FIPS_E  = -165,  /* PBKDF2 Known answer test failure */
     WC_KEY_MISMATCH_E  = -166,  /* Error for private/public key mismatch */
-    BAD_INDEX_E        = -167,  /* Bad index */
-    /* -168..-169 unused. */
+    /* -167..-169 unused. */
 
     ECC_BAD_ARG_E      = -170,  /* ECC input argument of wrong type */
     ASN_ECC_KEY_E      = -171,  /* ASN ECC bad input */
@@ -306,14 +305,13 @@ enum wolfCrypt_ErrorCodes {
     DEADLOCK_AVERTED_E  = -1000, /* Deadlock averted -- retry the call */
     ASCON_AUTH_E        = -1001, /* ASCON Authentication check failure */
     WC_ACCEL_INHIBIT_E  = -1002, /* Crypto acceleration is currently inhibited */
+    BAD_INDEX_E         = -1003, /* Bad index */
 
-    WC_SPAN2_LAST_E     = -1002, /* Update to indicate last used error code */
+    WC_SPAN2_LAST_E     = -1003, /* Update to indicate last used error code */
+    WC_LAST_E           = -1003, /* the last code used either here or in
+                                  * error-ssl.h */
+
     WC_SPAN2_MIN_CODE_E = -1999, /* Last usable code in span 2 */
-
-    WC_LAST_E           = -1002, /* the last code used either here or in
-                                  * error-ssl.h
-                                  */
-
     MIN_CODE_E          = -1999  /* the last code allocated either here or in
                                   * error-ssl.h
                                   */
