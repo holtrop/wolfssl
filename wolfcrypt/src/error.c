@@ -641,6 +641,9 @@ const char* wc_GetErrorString(int error)
     case WC_KEY_MISMATCH_E:
         return "key values mismatch";
 
+    case BAD_INDEX_E:
+        return "Bad index";
+
     case DEADLOCK_AVERTED_E:
         return "Deadlock averted -- retry the call";
 

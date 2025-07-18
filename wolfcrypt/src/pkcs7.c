@@ -15305,67 +15305,59 @@ int wc_PKCS7_DecodeCompressedData(wc_PKCS7* pkcs7, byte* pkiMsg,
 
 #endif /* HAVE_LIBZ && !NO_PKCS7_COMPRESSED_DATA */
 
-int wc_PKCS7_DecodeSymmetricKeyPackageAttribute(byte * pkiMsg, word32 pkiMsgSz,
-        size_t index, byte * output, word32 outputSz, word32 * length)
+static int wc_PKCS7_DecodeSymmetricKeyPackage(byte const * skp, word32 skpSz,
+        size_t index, byte const ** out, word32 * outSz, int getKey)
 {
-    int ret = 0;
-    word32 pkiIndex = 0;
+    word32 skpIndex = 0;
     int length = 0;
+    int version = 0;
 
-    if (pkiMsg == NULL || output == NULL) {
-        ret = BAD_FUNC_ARG;
-    }
+    if (skp == NULL || out == NULL || outSz == NULL)
+        return BAD_FUNC_ARG;
+
     /* Expect a SEQUENCE header to start the SymmetricKeyPackage object. */
-    else if (GetSequence(pkiMsg, &pkiIndex, &length, pkiMsgSz) < 0) {
-        ret = ASN_PARSE_E;
-    }
+    if (GetSequence(skp, &skpIndex, &length, skpSz) < 0)
+        return ASN_PARSE_E;
+
     /* Expect version v1 */
-    else if (GetASNInt(pkiMsg, &pkiIndex, &length, pkiMsgSz) < 0) {
-        ret = ASN_PARSE_E;
-    }
-    else if (length != 1) {
-        ret = ASN_PARSE_E;
-    }
-    else if (pkiMsg[pkiIndex++] != 1) {
-        ret = ASN_PARSE_E;
-    }
-    /* A sKeyPkgAttrs [0] tag holds SymmetricKeyPackage attributes */
-    else if (GetASNHeader(pkiMsg, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
-                &pkiIndex, &length, pkiMsgSz) < 0) {
-        ret = BAD_INDEX_E;
-    }
-    else {
-        /* sKeyPkgAttrs is present at &pkiMsg[pkiIndex], length in length */
-        byte tagFound;
-        int attr_length;
-        int end_of_attributes = pkiIndex + length;
-        while (index > 0) {
-            if (GetASNTag(pkiMsg, &pkiIndex, &tagFound, pkiMsgSz) != 0) {
-                ret = ASN_PARSE_E;
-                break;
-            }
-            /* Get the encoded length. */
-            if (GetLength(pkiMsg, &pkiIndex, &attr_length, maxIdx) < 0) {
-                ret = ASN_PARSE_E;
-                break;
-            }
-            pkiIndex += attr_length;
-            if (pkiIndex >= end_of_attributes) {
-                ret = BAD_INDEX_E;
-                break;
-            }
-            index--;
+    if (GetMyVersion(skp, &skpIndex, &version, skpSz) < 0)
+        return ASN_PARSE_E;
+
+    if (version != 1)
+        return ASN_PARSE_E;
+
+    if (GetASNHeader(skp, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+            &skpIndex, &length, skpSz) >= 0) {
+        /* sKeyPkgAttrs [0] tag found so there are attributes present. */
+        if (getKey != 0) {
+            /* Key was requested, not attribute, so skip the attributes. */
+            skpIndex += (word32)length;
         }
-        if (ret == 0) {
+        else {
+            /* sKeyPkgAttrs is present at &skp[skpIndex], length in length */
+            return IndexSequenceOf(&skp[skpIndex], length, index, out, outSz);
         }
     }
 
-    return ret;
+    if (getKey == 0) {
+        /* An attribute was requested, but none are present. */
+        return BAD_INDEX_E;
+    }
+
+    /* sKeys is present at &skp[skpIndex]. */
+    return IndexSequenceOf(&skp[skpIndex], skpSz - skpIndex, index, out, outSz);
 }
 
-int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte * pkiMsg,
-        word32 pkiMsgSz, size_t index, byte * output, word32 outputSz)
+int wc_PKCS7_DecodeSymmetricKeyPackageAttribute(byte const * skp,
+        word32 skpSz, size_t index, byte const ** attr, word32 * attrSz)
 {
+    return wc_PKCS7_DecodeSymmetricKeyPackage(skp, skpSz, index, attr, attrSz, 0);
+}
+
+int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte const * skp,
+        word32 skpSz, size_t index, byte const ** key, word32 * keySz)
+{
+    return wc_PKCS7_DecodeSymmetricKeyPackage(skp, skpSz, index, key, keySz, 1);
 }
 
 #else  /* HAVE_PKCS7 */
@@ -15378,4 +15370,3 @@ int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte * pkiMsg,
 
 
 #endif /* HAVE_PKCS7 */
-

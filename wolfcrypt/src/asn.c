@@ -2573,46 +2573,54 @@ int GetSequence_ex(const byte* input, word32* inOutIdx, int* len,
 /**
  * Index a SEQUENCE OF object to get to a specific element.
  *
- * @param[in] input Buffer holding DER/BER SEQUENCE OF object.
- * @param[in] inputSz Size of the input SEQUENCE OF object.
+ * @param[in] seqOf Buffer holding DER/BER SEQUENCE OF object.
+ * @param[in] seqOfSz Size of the seqOf SEQUENCE OF object.
  * @param[in] seqIndex Index of the SEQUENCE OF element being requested.
- * @param[out] outOffset Input buffer offset to <seqIndex>th element of
- * SEQUENCE OF object.
- * @param[out] len Length of the <seqIndex>th element of SEQUENCE OF object.
+ * @param[out] out Buffer in which to store pointer to the <seqIndex>th element
+ * of the SEQUENCE OF object.
+ * @param[out] outSz Buffer in which to store the length of the <seqIndex>th
+ * element of the SEQUENCE OF object.
  *
  * @retval 0 on success.
  * @retval BUFFER_E when there is not enough data to parse.
  * @retval BAD_INDEX_E when the given seqIndex is out of range.
- * @retval ASN_PARSE_E when the input is not in the expected format.
+ * @retval ASN_PARSE_E when the seqOf is not in the expected format.
  */
-int IndexSequenceOf(const byte* input, word32 inputSz, size_t seqIndex,
-        word32 * outOffset, int* len)
+int IndexSequenceOf(byte const * seqOf, word32 seqOfSz, size_t seqIndex,
+        byte const ** out, word32 * outSz)
 {
-    int ret = 0;
-    int elementLength;
-    word32 offset = 0;
+    int length;
+    word32 seqOfIdx = 0U;
     byte tagFound;
+    size_t i;
+    word32 elementIdx;
 
-    while (seqIndex > 0) {
-        if (offset >= inputSz) {
-            ret = BAD_INDEX_E;
-            break;
-        }
-        /* Skip the element tag. */
-        if (GetASNTag(input, &offset, &tagFound, inputSz) != 0) {
-            ret = ASN_PARSE_E;
-            break;
-        }
-        /* Get the element's encoded length. */
-        if (GetLength(input, &offset, &elementLength, inputSz) < 0) {
-            ret = ASN_PARSE_E;
-            break;
-        }
-        offset += elementLength;
-        seqIndex--;
+    /* Validate the SEQUENCE OF header. */
+    if (GetSequence(seqOf, &seqOfIdx, &length, seqOfSz) < 0)
+        return ASN_PARSE_E;
+
+    for (i = 0U; i <= seqIndex; i++) {
+        if (seqOfIdx >= seqOfSz)
+            return BAD_INDEX_E;
+
+        elementIdx = seqOfIdx;
+
+        /* Validate the element tag. */
+        if (GetASNTag(seqOf, &seqOfIdx, &tagFound, seqOfSz) != 0)
+            return ASN_PARSE_E;
+
+        /* Validate and get the element's encoded length. */
+        if (GetLength(seqOf, &seqOfIdx, &length, seqOfSz) < 0)
+            return ASN_PARSE_E;
+
+        seqOfIdx += (word32)length;
     }
 
-    return ret;
+    /* If the tag and length checks above passed then we've found the requested
+     * element and validated it fits within seqOfSz. */
+    *out = &seqOf[elementIdx];
+    *outSz = (seqOfIdx - elementIdx);
+    return 0;
 }
 
 /* Decode the header of a BER/DER encoded SET.
