@@ -212,11 +212,11 @@ int test_IndexSequenceOf(void)
     ExpectPtrEq(element, &int_seq[9]);
     ExpectIntEQ(elementSz, 3);
 
-    ExpectIntEQ(IndexSequenceOf(int_seq, sizeof(int_seq), 3U, &element, &elementSz), BAD_INDEX_E);
+    ExpectIntEQ(IndexSequenceOf(int_seq, sizeof(int_seq), 3U, &element, &elementSz), WC_NO_ERR_TRACE(BAD_INDEX_E));
 
-    ExpectIntEQ(IndexSequenceOf(bad_seq, sizeof(bad_seq), 0U, &element, &elementSz), ASN_PARSE_E);
+    ExpectIntEQ(IndexSequenceOf(bad_seq, sizeof(bad_seq), 0U, &element, &elementSz), WC_NO_ERR_TRACE(ASN_PARSE_E));
 
-    ExpectIntEQ(IndexSequenceOf(empty_seq, sizeof(empty_seq), 0U, &element, &elementSz), BAD_INDEX_E);
+    ExpectIntEQ(IndexSequenceOf(empty_seq, sizeof(empty_seq), 0U, &element, &elementSz), WC_NO_ERR_TRACE(BAD_INDEX_E));
 #endif
 
     return EXPECT_RESULT();
