@@ -15360,6 +15360,57 @@ int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte const * skp,
     return wc_PKCS7_DecodeSymmetricKeyPackage(skp, skpSz, index, key, keySz, 1);
 }
 
+int wc_PKCS7_DecodeOneSymmetricKeyAttribute(byte const * skp,
+        word32 skpSz, size_t index, byte const ** attr, word32 * attrSz)
+{
+    word32 skpIndex = 0;
+    word32 tmpIndex;
+    int length = 0;
+
+    if (skp == NULL || attr == NULL || attrSz == NULL)
+        return BAD_FUNC_ARG;
+
+    /* Expect a SEQUENCE header to start the OneSymmetricKey object. */
+    if (GetSequence(skp, &skpIndex, &length, skpSz) < 0)
+        return ASN_PARSE_E;
+
+    tmpIndex = skpIndex;
+
+    if (GetSequence(skp, &tmpIndex, &length, skpSz) < 0) {
+        /* sKeyAttrs is not present. */
+        return BAD_INDEX_E;
+    }
+
+    /* Index the sKeyAttrs SEQUENCE OF object with the given index. */
+    return IndexSequenceOf(&skp[skpIndex], skpSz - skpIndex, index, attr, attrSz);
+}
+
+int wc_PKCS7_DecodeOneSymmetricKeyKey(byte const * skp,
+        word32 skpSz, byte const ** key, word32 * keySz)
+{
+    word32 skpIndex = 0;
+    int length = 0;
+
+    if (skp == NULL || key == NULL || keySz == NULL)
+        return BAD_FUNC_ARG;
+
+    /* Expect a SEQUENCE header to start the OneSymmetricKey object. */
+    if (GetSequence(skp, &skpIndex, &length, skpSz) < 0)
+        return ASN_PARSE_E;
+
+    if (GetSequence(skp, &skpIndex, &length, skpSz) >= 0) {
+        /* sKeyAttrs is present. Skip it. */
+        skpIndex += (word32)length;
+    }
+
+    if (GetASNHeader(skp, ASN_OCTET_STRING, &skpIndex, &length, skpSz) < 0)
+        return ASN_PARSE_E;
+
+    *key = &skp[skpIndex];
+    *keySz = length;
+    return 0;
+}
+
 #else  /* HAVE_PKCS7 */
 
 

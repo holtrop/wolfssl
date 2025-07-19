@@ -18617,6 +18617,113 @@ static int test_wc_PKCS7_DecodeSymmetricKeyPackage(void)
 
 
 /*
+ * Test wc_PKCS7_DecodeOneSymmetricKey().
+ */
+static int test_wc_PKCS7_DecodeOneSymmetricKey(void)
+{
+    EXPECT_DECLS;
+#if defined(HAVE_PKCS7)
+    byte const * item;
+    word32 itemSz;
+    int ret;
+
+    {
+        static const byte key1_attr2[] = {
+            0x30, 0x0E,
+              0x30, 0x06,
+                0x02, 0x01, 0x0A,
+                0x02, 0x01, 0x0B,
+              0x04, 0x04, 0xAA, 0xBB, 0xCC, 0xDD
+        };
+
+        /* NULL input data pointer */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                NULL, sizeof(key1_attr2), 0, &item, &itemSz);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+
+        /* NULL output pointer */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key1_attr2, sizeof(key1_attr2), 0, NULL, &itemSz);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+
+        /* NULL output size pointer */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key1_attr2, sizeof(key1_attr2), 0, &item, NULL);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(BAD_FUNC_ARG));
+
+        /* Valid attribute 0 access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key1_attr2, sizeof(key1_attr2), 0, &item, &itemSz);
+        ExpectIntEQ(ret, 0);
+        ExpectPtrEq(item, &key1_attr2[4]);
+        ExpectIntEQ(itemSz, 3);
+
+        /* Valid attribute 1 access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key1_attr2, sizeof(key1_attr2), 1, &item, &itemSz);
+        ExpectIntEQ(ret, 0);
+        ExpectPtrEq(item, &key1_attr2[7]);
+        ExpectIntEQ(itemSz, 3);
+
+        /* Attribute index 2 out of range */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key1_attr2, sizeof(key1_attr2), 2, &item, &itemSz);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(BAD_INDEX_E));
+
+        /* Valid key access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyKey(
+                key1_attr2, sizeof(key1_attr2), &item, &itemSz);
+        ExpectIntEQ(ret, 0);
+        ExpectPtrEq(item, &key1_attr2[12]);
+        ExpectIntEQ(itemSz, 4);
+    }
+
+    {
+        static const byte no_attrs[] = {
+            0x30, 0x06,
+              0x04, 0x04, 0xAA, 0xBB, 0xCC, 0xDD
+        };
+
+        /* Attribute index 0 out of range */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                no_attrs, sizeof(no_attrs), 0, &item, &itemSz);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(BAD_INDEX_E));
+
+        /* Valid key access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyKey(
+                no_attrs, sizeof(no_attrs), &item, &itemSz);
+        ExpectIntEQ(ret, 0);
+        ExpectPtrEq(item, &no_attrs[4]);
+        ExpectIntEQ(itemSz, 4);
+    }
+
+    {
+        static const byte key0_attr2[] = {
+            0x30, 0x08,
+              0x30, 0x06,
+                0x02, 0x01, 0x0A,
+                0x02, 0x01, 0x0B,
+        };
+
+        /* Valid attribute 0 access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyAttribute(
+                key0_attr2, sizeof(key0_attr2), 0, &item, &itemSz);
+        ExpectIntEQ(ret, 0);
+        ExpectPtrEq(item, &key0_attr2[4]);
+        ExpectIntEQ(itemSz, 3);
+
+        /* Invalid key access */
+        ret = wc_PKCS7_DecodeOneSymmetricKeyKey(
+                key0_attr2, sizeof(key0_attr2), &item, &itemSz);
+        ExpectIntEQ(ret, WC_NO_ERR_TRACE(ASN_PARSE_E));
+    }
+
+#endif
+    return EXPECT_RESULT();
+} /* END test_wc_PKCS7_DecodeOneSymmetricKey() */
+
+
+/*
  * Testing wc_PKCS7_Degenerate()
  */
 static int test_wc_PKCS7_Degenerate(void)
@@ -68093,6 +68200,7 @@ TEST_CASE testCases[] = {
     TEST_DECL(test_wc_PKCS7_EncodeEncryptedData),
     TEST_DECL(test_wc_PKCS7_DecodeEncryptedKeyPackage),
     TEST_DECL(test_wc_PKCS7_DecodeSymmetricKeyPackage),
+    TEST_DECL(test_wc_PKCS7_DecodeOneSymmetricKey),
     TEST_DECL(test_wc_PKCS7_Degenerate),
     TEST_DECL(test_wc_PKCS7_BER),
     TEST_DECL(test_wc_PKCS7_signed_enveloped),

@@ -2599,6 +2599,8 @@ int IndexSequenceOf(byte const * seqOf, word32 seqOfSz, size_t seqIndex,
     if (GetSequence(seqOf, &seqOfIdx, &length, seqOfSz) < 0)
         return ASN_PARSE_E;
 
+    seqOfSz = seqOfIdx + length;
+
     for (i = 0U; i <= seqIndex; i++) {
         if (seqOfIdx >= seqOfSz)
             return BAD_INDEX_E;
