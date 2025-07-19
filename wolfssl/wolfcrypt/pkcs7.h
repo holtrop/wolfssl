@@ -556,10 +556,10 @@ WOLFSSL_API int wc_PKCS7_DecodeSymmetricKeyPackageAttribute(byte const * skp,
         word32 skpSz, size_t index, byte const ** attr, word32 * attrSz);
 WOLFSSL_API int wc_PKCS7_DecodeSymmetricKeyPackageKey(byte const * skp,
         word32 skpSz, size_t index, byte const ** key, word32 * keySz);
-WOLFSSL_API int wc_PKCS7_DecodeOneSymmetricKeyAttribute(byte const * skp,
-        word32 skpSz, size_t index, byte const ** attr, word32 * attrSz);
-WOLFSSL_API int wc_PKCS7_DecodeOneSymmetricKeyKey(byte const * skp,
-        word32 skpSz, byte const ** key, word32 * keySz);
+WOLFSSL_API int wc_PKCS7_DecodeOneSymmetricKeyAttribute(byte const * osk,
+        word32 oskSz, size_t index, byte const ** attr, word32 * attrSz);
+WOLFSSL_API int wc_PKCS7_DecodeOneSymmetricKeyKey(byte const * osk,
+        word32 oskSz, byte const ** key, word32 * keySz);
 
 #ifdef __cplusplus
     } /* extern "C" */
