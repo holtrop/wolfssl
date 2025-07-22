@@ -17596,6 +17596,7 @@ static int test_wc_PKCS7_DecodeEnvelopedData_stream(void)
 #endif
 } /* END test_wc_PKCS7_DecodeEnvelopedData_stream() */
 
+
 /*
  * Testing wc_PKCS7_EncodeEnvelopedData(), wc_PKCS7_DecodeEnvelopedData()
  */
@@ -18096,6 +18097,66 @@ static int test_wc_PKCS7_EncodeDecodeEnvelopedData(void)
 #endif /* HAVE_PKCS7 */
     return EXPECT_RESULT();
 } /* END test_wc_PKCS7_EncodeDecodeEnvelopedData() */
+
+
+/*
+ * Testing wc_PKCS7_GetEnvelopedDataKariRid().
+ */
+static int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
+{
+    EXPECT_DECLS;
+#if defined(HAVE_PKCS7)
+#if defined(HAVE_ECC) && (!defined(NO_AES) || (!defined(NO_SHA) || \
+     !defined(NO_SHA256) || defined(WOLFSSL_SHA512)))
+    PKCS7 * pkcs7 = NULL;
+#ifdef ECC_TIMING_RESISTANT
+    WC_RNG rng;
+    XMEMSET(&rng, 0, sizeof(WC_RNG));
+#endif
+
+#ifdef ECC_TIMING_RESISTANT
+    DoExpectIntEQ(wc_FreeRng(&rng), 0);
+#endif
+
+    {
+        byte out[15];
+        byte *cms = NULL;
+        word32 cmsSz;
+        XFILE cmsFile = XBADFILE;
+
+        XMEMSET(out, 0, sizeof(out));
+        ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
+        ExpectTrue((cmsFile = XFOPEN("./certs/test/kari-keyid-cms.msg", "rb"))
+            != XBADFILE);
+        cmsSz = (word32)FOURK_BUF;
+        ExpectNotNull(cms = (byte*)XMALLOC(FOURK_BUF, HEAP_HINT,
+            DYNAMIC_TYPE_TMP_BUFFER));
+        ExpectTrue((cmsSz = (word32)XFREAD(cms, 1, cmsSz, cmsFile)) > 0);
+        if (cmsFile != XBADFILE)
+            XFCLOSE(cmsFile);
+
+        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte*)cliecc_cert_der_256,
+            sizeof_cliecc_cert_der_256), 0);
+        if (pkcs7 != NULL) {
+#ifdef ECC_TIMING_RESISTANT
+            pkcs7->rng = &rng;
+#endif
+            pkcs7->privateKey   = (byte*)ecc_clikey_der_256;
+            pkcs7->privateKeySz = sizeof_ecc_clikey_der_256;
+        }
+        ExpectIntLT(wc_PKCS7_DecodeEnvelopedData(pkcs7, cms, cmsSz, out, 2),
+                0);
+        ExpectIntGT(wc_PKCS7_DecodeEnvelopedData(pkcs7, cms, cmsSz, out,
+                    sizeof(out)), 0);
+        XFREE(cms, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
+        ExpectIntEQ(XMEMCMP(out, "testkari", 8), 0);
+        wc_PKCS7_Free(pkcs7);
+        pkcs7 = NULL;
+    }
+#endif
+#endif /* HAVE_PKCS7 */
+    return EXPECT_RESULT();
+} /* END test_wc_PKCS7_GetEnvelopedDataKariRid() */
 
 
 /*
@@ -68197,6 +68258,7 @@ TEST_CASE testCases[] = {
     TEST_DECL(test_wc_PKCS7_VerifySignedData_ECC),
     TEST_DECL(test_wc_PKCS7_DecodeEnvelopedData_stream),
     TEST_DECL(test_wc_PKCS7_EncodeDecodeEnvelopedData),
+    TEST_DECL(test_wc_PKCS7_GetEnvelopedDataKariRid),
     TEST_DECL(test_wc_PKCS7_EncodeEncryptedData),
     TEST_DECL(test_wc_PKCS7_DecodeEncryptedKeyPackage),
     TEST_DECL(test_wc_PKCS7_DecodeSymmetricKeyPackage),
