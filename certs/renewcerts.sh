@@ -793,7 +793,7 @@ run_renewcerts(){
     echo "test" | openssl cms -encrypt -binary -keyid -out ktri-keyid-cms.msg -outform der -recip ../client-cert.pem -nocerts
     check_result $? "generate ktri-keyid-cms.msg"
     # Generate an EnvelopedData with multiple KARI recipients for testing.
-    echo "testkari" | openssl cms -encrypt -binary -keyid -out kari-keyid-cms.msg -outform der -recip ../client-ecc-cert.pem -recip ../client-ecc384-cert.pem -nocerts
+    echo "testkari" | openssl cms -encrypt -binary -keyid -out kari-keyid-cms.msg -outform der -recip ../client-ecc-cert.pem -nocerts
     check_result $? "generate kari-keyid-cms.msg"
     echo "testencrypt" | openssl cms -EncryptedData_encrypt -binary -keyid -aes-128-cbc -secretkey 0123456789ABCDEF0011223344556677 -out encrypteddata.msg -outform der -recip ../client-cert.pem -nocerts
     check_result $? "generate encrypteddata.msg"
