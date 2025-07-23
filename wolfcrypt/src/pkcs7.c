@@ -12393,36 +12393,15 @@ static int GetKariRidFromRecipientInfos(wc_PKCS7* pkcs7, byte* in,
         case WC_PKCS7_DECRYPT_KTRI:
         case WC_PKCS7_DECRYPT_KTRI_2:
         case WC_PKCS7_DECRYPT_KTRI_3:
-        #ifndef NO_RSA
-            ret = wc_PKCS7_DecryptKtri(pkcs7, in, inSz, idx,
-                                      decryptedKey, decryptedKeySz, recipFound);
-        #else
-            return NOT_COMPILED_IN;
-        #endif
+        case WC_PKCS7_DECRYPT_KEKRI:
+        case WC_PKCS7_DECRYPT_PWRI:
+        case WC_PKCS7_DECRYPT_ORI:
+            ret = ASN_PARSE_E;
             break;
 
         case WC_PKCS7_DECRYPT_KARI:
-                ret = GetKariRidFromKari(pkcs7, in, inSz, idx,
-                                      decryptedKey, decryptedKeySz, recipFound);
-                break;
-
-        case WC_PKCS7_DECRYPT_KEKRI:
-                ret = wc_PKCS7_DecryptKekri(pkcs7, in, inSz, idx,
-                                      decryptedKey, decryptedKeySz, recipFound);
-                break;
-
-        case WC_PKCS7_DECRYPT_PWRI:
-        #if !defined(NO_PWDBASED) && !defined(NO_SHA)
-                ret = wc_PKCS7_DecryptPwri(pkcs7, in, inSz, idx,
-                                      decryptedKey, decryptedKeySz, recipFound);
-                break;
-        #else
-                return NOT_COMPILED_IN;
-        #endif
-
-        case WC_PKCS7_DECRYPT_ORI:
-            ret = wc_PKCS7_DecryptOri(pkcs7, in, inSz, idx,
-                                      decryptedKey, decryptedKeySz, recipFound);
+            ret = GetKariRidFromKari(pkcs7, in, inSz, idx,
+                                  decryptedKey, decryptedKeySz, recipFound);
             break;
 
         default:
