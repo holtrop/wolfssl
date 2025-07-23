@@ -18134,7 +18134,7 @@ static int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
     if (skiHexFile != XBADFILE)
         XFCLOSE(skiHexFile);
 
-    ret = wc_PKCS7_GetEnvelopedDataKariRidNew(cms, cmsSz, rid, &ridSz);
+    ret = wc_PKCS7_GetEnvelopedDataKariRid(cms, cmsSz, rid, &ridSz);
     ExpectIntEQ(ret, 0);
     ExpectIntGT(ridSz, ridKeyIdentifierOffset);
     /* The Subject Key Identifier hex file should have 2 hex characters for each
