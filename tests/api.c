@@ -18108,65 +18108,56 @@ static int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
 #if defined(HAVE_PKCS7)
 #if defined(HAVE_ECC) && (!defined(NO_AES) || (!defined(NO_SHA) || \
      !defined(NO_SHA256) || defined(WOLFSSL_SHA512)))
-    PKCS7 * pkcs7 = NULL;
-#ifdef ECC_TIMING_RESISTANT
-    WC_RNG rng;
-    XMEMSET(&rng, 0, sizeof(WC_RNG));
-#endif
+    byte rid[256];
+    byte cms[1024];
+    XFILE cmsFile = XBADFILE;
+    int ret;
+    word32 ridSz = sizeof(rid);
+    XFILE skiHexFile = XBADFILE;
+    byte skiHex[256];
+    word32 cmsSz;
+    word32 skiHexSz;
+    size_t i;
+    const word32 ridKeyIdentifierOffset = 4;
 
-#ifdef ECC_TIMING_RESISTANT
-    DoExpectIntEQ(wc_FreeRng(&rng), 0);
-#endif
+    cmsFile = XFOPEN("./certs/test/kari-keyid-cms.msg", "rb");
+    ExpectTrue(cmsFile != XBADFILE);
+    cmsSz = (word32)XFREAD(cms, 1, sizeof(cms), cmsFile);
+    ExpectTrue(cmsSz > 0);
+    if (cmsFile != XBADFILE)
+        XFCLOSE(cmsFile);
 
+    skiHexFile = XFOPEN("./certs/test/client-ecc-cert-ski.hex", "rb");
+    ExpectTrue(skiHexFile != XBADFILE);
+    skiHexSz = (word32)XFREAD(skiHex, 1, sizeof(skiHex), skiHexFile);
+    ExpectTrue(skiHexSz > 0);
+    if (skiHexFile != XBADFILE)
+        XFCLOSE(skiHexFile);
+
+    ret = wc_PKCS7_GetEnvelopedDataKariRidNew(cms, cmsSz, rid, &ridSz);
+    ExpectIntEQ(ret, 0);
+    ExpectIntGT(ridSz, ridKeyIdentifierOffset);
+    /* The Subject Key Identifier hex file should have 2 hex characters for each
+     * byte of the key identifier in the returned recipient ID (rid), plus a
+     * terminating new line character. */
+    ExpectIntGE(skiHexSz, ((ridSz - ridKeyIdentifierOffset) * 2) + 1);
+    for (i = 0; i < (ridSz - ridKeyIdentifierOffset); i++)
     {
-        byte out[15];
-        byte rid[256];
-        byte *cms = NULL;
-        word32 cmsSz;
-        XFILE cmsFile = XBADFILE;
-        int ret;
-        word32 ridSz;
-
-        XMEMSET(out, 0, sizeof(out));
-        ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
-        ExpectTrue((cmsFile = XFOPEN("./certs/test/kari-keyid-cms.msg", "rb"))
-            != XBADFILE);
-        cmsSz = (word32)FOURK_BUF;
-        ExpectNotNull(cms = (byte*)XMALLOC(FOURK_BUF, HEAP_HINT,
-            DYNAMIC_TYPE_TMP_BUFFER));
-        ExpectTrue((cmsSz = (word32)XFREAD(cms, 1, cmsSz, cmsFile)) > 0);
-        if (cmsFile != XBADFILE)
-            XFCLOSE(cmsFile);
-
-        ExpectIntEQ(wc_PKCS7_InitWithCert(pkcs7, (byte*)cliecc_cert_der_256,
-            sizeof_cliecc_cert_der_256), 0);
-        if (pkcs7 != NULL) {
-#ifdef ECC_TIMING_RESISTANT
-            pkcs7->rng = &rng;
-#endif
-            pkcs7->privateKey   = (byte*)ecc_clikey_der_256;
-            pkcs7->privateKeySz = sizeof_ecc_clikey_der_256;
-        }
-        ridSz = sizeof(rid);
-        ret = wc_PKCS7_GetEnvelopedDataKariRidNew(cms, cmsSz, rid, &ridSz);
-        fprintf(stderr, ">>>>\n");
-        for (size_t i = 0u; i < ridSz; i++)
+        size_t j;
+        byte ridKeyIdByte = rid[ridKeyIdentifierOffset + i];
+        byte skiByte = 0;
+        for (j = 0; j <= 1; j++)
         {
-            fprintf(stderr, "%02X", rid[i]);
+            byte hexChar = skiHex[i * 2 + j];
+            skiByte = skiByte << 4;
+            if ('0' <= hexChar && hexChar <= '9')
+                skiByte |= (hexChar - '0');
+            else if ('A' <= hexChar && hexChar <= 'F')
+                skiByte |= (hexChar - 'A' + 10);
+            else
+                ExpectTrue(0);
         }
-        fprintf(stderr, "\n<<<<\n");
-        ExpectIntEQ(ret, 0);
-        ExpectIntEQ(42, 43);
-        ret = wc_PKCS7_GetEnvelopedDataKariRid(pkcs7, cms, cmsSz, out,
-                sizeof(out));
-        if (ret == WC_NO_ERR_TRACE(WC_PKCS7_WANT_READ_E))
-            ret = wc_PKCS7_GetEnvelopedDataKariRid(pkcs7, cms, cmsSz, out,
-                    sizeof(out));
-        ExpectIntGT(ret, 0);
-        XFREE(cms, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
-        ExpectIntEQ(XMEMCMP(out, "testkari", 8), 0);
-        wc_PKCS7_Free(pkcs7);
-        pkcs7 = NULL;
+        ExpectIntEQ(ridKeyIdByte, skiByte);
     }
 #endif
 #endif /* HAVE_PKCS7 */
