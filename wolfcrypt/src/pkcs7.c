@@ -11888,7 +11888,6 @@ static int GetKariRidFromKari(wc_PKCS7* pkcs7, byte* in, word32 inSz,
             WC_PKCS7_KARI* kari;
 
         #ifndef NO_PKCS7_STREAM
-            /* @TODO for now just get full buffer, needs divided up */
             if ((ret = wc_PKCS7_AddDataToStream(pkcs7, in, inSz,
                    (pkcs7->stream->maxLen - pkcs7->stream->totalRd) +
                    pkcs7->stream->length, &pkiMsg, idx)) != 0) {
