@@ -17596,7 +17596,6 @@ static int test_wc_PKCS7_DecodeEnvelopedData_stream(void)
 #endif
 } /* END test_wc_PKCS7_DecodeEnvelopedData_stream() */
 
-
 /*
  * Testing wc_PKCS7_EncodeEnvelopedData(), wc_PKCS7_DecodeEnvelopedData()
  */
