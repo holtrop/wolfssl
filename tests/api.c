@@ -18120,10 +18120,12 @@ static int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
 
     {
         byte out[15];
+        byte rid[256];
         byte *cms = NULL;
         word32 cmsSz;
         XFILE cmsFile = XBADFILE;
         int ret;
+        word32 ridSz;
 
         XMEMSET(out, 0, sizeof(out));
         ExpectNotNull(pkcs7 = wc_PKCS7_New(HEAP_HINT, testDevId));
@@ -18145,6 +18147,16 @@ static int test_wc_PKCS7_GetEnvelopedDataKariRid(void)
             pkcs7->privateKey   = (byte*)ecc_clikey_der_256;
             pkcs7->privateKeySz = sizeof_ecc_clikey_der_256;
         }
+        ridSz = sizeof(rid);
+        ret = wc_PKCS7_GetEnvelopedDataKariRidNew(cms, cmsSz, rid, &ridSz);
+        fprintf(stderr, ">>>>\n");
+        for (size_t i = 0u; i < ridSz; i++)
+        {
+            fprintf(stderr, "%02X", rid[i]);
+        }
+        fprintf(stderr, "\n<<<<\n");
+        ExpectIntEQ(ret, 0);
+        ExpectIntEQ(42, 43);
         ret = wc_PKCS7_GetEnvelopedDataKariRid(pkcs7, cms, cmsSz, out,
                 sizeof(out));
         if (ret == WC_NO_ERR_TRACE(WC_PKCS7_WANT_READ_E))
