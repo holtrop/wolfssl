@@ -12420,157 +12420,52 @@ static int GetKariRidFromRecipientInfos(wc_PKCS7* pkcs7, byte* in,
         pkiMsg = pkcs7->stream->buffer;
 #endif
 
-    /* when looking for next recipient, use first sequence and version to
-     * indicate there is another, if not, move on */
-    while (*recipFound == 0) {
+    /* remove RecipientInfo, if we don't have a SEQUENCE, back up idx to
+     * last good saved one */
+    if (GetSequence_ex(pkiMsg, idx, &length, pkiMsgSz, NO_USER_CHECK) > 0) {
+        return ASN_PARSE_E;
+    }
+    else {
+        word32 localIdx;
+        /* kari is IMPLICIT[1] */
+        *idx = savedIdx;
+        localIdx = *idx;
 
-        /* remove RecipientInfo, if we don't have a SEQUENCE, back up idx to
-         * last good saved one */
-        if (GetSequence_ex(pkiMsg, idx, &length, pkiMsgSz, NO_USER_CHECK) > 0) {
+        if (GetASNTag(pkiMsg, &localIdx, &tag, pkiMsgSz) != 0) {
+            /* no room for recipient info */
+            return ASN_PARSE_E;
+        }
 
-        #ifndef NO_RSA
-            /* found ktri */
-            #ifndef NO_PKCS7_STREAM
-            if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
-                break;
+        if (tag == (ASN_CONSTRUCTED | ASN_CONTEXT_SPECIFIC | 1)) {
+            (*idx)++;
+            if (GetLength_ex(pkiMsg, idx, &length, pkiMsgSz,
+                        NO_USER_CHECK) < 0)
+                return ASN_PARSE_E;
+
+            if (GetMyVersion(pkiMsg, idx, &version, pkiMsgSz) < 0) {
+                return ASN_PARSE_E;
             }
-            #endif
-            wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_KTRI);
-            ret = wc_PKCS7_DecryptKtri(pkcs7, in, inSz, idx,
+
+            if (version != 3)
+                return ASN_VERSION_E;
+
+            /* found kari */
+        #ifndef NO_PKCS7_STREAM
+            if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
+                return ASN_PARSE_E;
+            }
+        #endif
+            wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_KARI);
+            ret = wc_PKCS7_DecryptKari(pkcs7, in, inSz, idx,
                                       decryptedKey, decryptedKeySz,
                                       recipFound);
             if (ret != 0)
                 return ret;
-        #else
-            return NOT_COMPILED_IN;
-        #endif
+
+        /* kekri is IMPLICIT[2] */
         }
-        else {
-            word32 localIdx;
-            /* kari is IMPLICIT[1] */
-            *idx = savedIdx;
-            localIdx = *idx;
-
-            if (GetASNTag(pkiMsg, &localIdx, &tag, pkiMsgSz) != 0) {
-                /* no room for recipient info */
-                break;
-            }
-
-            if (tag == (ASN_CONSTRUCTED | ASN_CONTEXT_SPECIFIC | 1)) {
-                (*idx)++;
-                if (GetLength_ex(pkiMsg, idx, &length, pkiMsgSz,
-                            NO_USER_CHECK) < 0)
-                    return ASN_PARSE_E;
-
-                if (GetMyVersion(pkiMsg, idx, &version, pkiMsgSz) < 0) {
-                    *idx = savedIdx;
-                    break;
-                }
-
-                if (version != 3)
-                    return ASN_VERSION_E;
-
-                /* found kari */
-            #ifndef NO_PKCS7_STREAM
-                if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
-                    break;
-                }
-            #endif
-                wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_KARI);
-                ret = wc_PKCS7_DecryptKari(pkcs7, in, inSz, idx,
-                                          decryptedKey, decryptedKeySz,
-                                          recipFound);
-                if (ret != 0)
-                    return ret;
-
-            /* kekri is IMPLICIT[2] */
-            } else if (tag == (ASN_CONSTRUCTED | ASN_CONTEXT_SPECIFIC | 2)) {
-                (*idx)++;
-
-                if (GetLength_ex(pkiMsg, idx, &version, pkiMsgSz,
-                            NO_USER_CHECK) < 0)
-                    return ASN_PARSE_E;
-
-                if (GetMyVersion(pkiMsg, idx, &version, pkiMsgSz) < 0) {
-                    *idx = savedIdx;
-                    break;
-                }
-
-                if (version != 4)
-                    return ASN_VERSION_E;
-
-                /* found kekri */
-            #ifndef NO_PKCS7_STREAM
-                if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
-                    break;
-                }
-            #endif
-                wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_KEKRI);
-                ret = wc_PKCS7_DecryptKekri(pkcs7, in, inSz, idx,
-                                           decryptedKey, decryptedKeySz,
-                                           recipFound);
-                if (ret != 0)
-                    return ret;
-
-            /* pwri is IMPLICIT[3] */
-            } else if (tag == (ASN_CONSTRUCTED | ASN_CONTEXT_SPECIFIC | 3)) {
-        #if !defined(NO_PWDBASED) && !defined(NO_SHA)
-                (*idx)++;
-
-                if (GetLength_ex(pkiMsg, idx, &version, pkiMsgSz,
-                            NO_USER_CHECK) < 0)
-                    return ASN_PARSE_E;
-
-                if (GetMyVersion(pkiMsg, idx, &version, pkiMsgSz) < 0) {
-                    *idx = savedIdx;
-                    break;
-                }
-
-                if (version != 0)
-                    return ASN_VERSION_E;
-
-                /* found pwri */
-            #ifndef NO_PKCS7_STREAM
-                if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
-                    break;
-                }
-            #endif
-                wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_PWRI);
-                ret = wc_PKCS7_DecryptPwri(pkcs7, in, inSz, idx,
-                                           decryptedKey, decryptedKeySz,
-                                           recipFound);
-                if (ret != 0)
-                    return ret;
-        #else
-                return NOT_COMPILED_IN;
-        #endif
-
-            /* ori is IMPLICIT[4] */
-            } else if (tag == (ASN_CONSTRUCTED | ASN_CONTEXT_SPECIFIC | 4)) {
-                (*idx)++;
-
-                /* found ori */
-            #ifndef NO_PKCS7_STREAM
-                if ((ret = wc_PKCS7_StreamEndCase(pkcs7, &tmpIdx, idx)) != 0) {
-                    break;
-                }
-            #endif
-                wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_ORI);
-                ret = wc_PKCS7_DecryptOri(pkcs7, in, inSz, idx,
-                                          decryptedKey, decryptedKeySz,
-                                          recipFound);
-                if (ret != 0)
-                    return ret;
-
-            } else {
-                /* failed to find RecipientInfo, restore idx and continue */
-                *idx = savedIdx;
-                break;
-            }
-        }
-
-        /* update good idx */
-        savedIdx = *idx;
+        else
+            return ASN_PARSE_E;
     }
 
     return ret;
