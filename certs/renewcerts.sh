@@ -523,6 +523,11 @@ run_renewcerts(){
     openssl x509 -in client-ecc-cert.pem -text > tmp.pem
     check_result $? "Step 3"
     mv tmp.pem client-ecc-cert.pem
+
+    # Extract the Subject Key Identifier from the generated certificate
+    # for unit test use.
+    openssl x509 -in client-ecc-cert.pem -noout -text | grep -A1 'Subject Key Identifier' | tail -n +2 | sed -e 's/[ :]//g' > test/client-ecc-cert-ski.hex
+    check_result $? "Step 4"
     echo "End of section"
     echo "---------------------------------------------------------------------"
     ############################################################
