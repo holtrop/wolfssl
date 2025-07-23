@@ -12456,7 +12456,7 @@ static int GetKariRidFromRecipientInfos(wc_PKCS7* pkcs7, byte* in,
             }
         #endif
             wc_PKCS7_ChangeState(pkcs7, WC_PKCS7_DECRYPT_KARI);
-            ret = wc_PKCS7_DecryptKari(pkcs7, in, inSz, idx,
+            ret = GetKariRidFromKari(pkcs7, in, inSz, idx,
                                       decryptedKey, decryptedKeySz,
                                       recipFound);
             if (ret != 0)
