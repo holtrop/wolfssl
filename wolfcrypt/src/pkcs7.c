@@ -13325,6 +13325,112 @@ WOLFSSL_API int wc_PKCS7_DecodeEnvelopedData(wc_PKCS7* pkcs7, byte* in,
 }
 
 
+int wc_PKCS7_GetEnvelopedDataKariRidNew(byte * in, word32 inSz,
+        byte * out, word32 * outSz)
+{
+    int ret = 0;
+    word32 idx = 0;
+    int length;
+    word32 contentType;
+    word32 ridIdx;
+    byte ridTag;
+
+    if (in == NULL || inSz == 0 || out == NULL || outSz == NULL) {
+        ret = BAD_FUNC_ARG;
+    }
+    /* Consume ContentInfo SEQUENCE header. */
+    else if (GetSequence(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Validate the EnvelopedData OBJECT IDENTIFIER. */
+    else if (wc_GetContentType(in, &idx, &contentType, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    else if (contentType != ENVELOPED_DATA) {
+        WOLFSSL_MSG("PKCS#7 input not of type EnvelopedData");
+        ret = PKCS7_OID_E;
+    }
+    /* Consume EXPLICIT content [0] header. */
+    else if (GetASNHeader(in, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED, &idx,
+                &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume EnvelopedData SEQUENCE header. */
+    else if (GetSequence(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume version. */
+    else if (GetMyVersion(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume originatorInfo if present. */
+    else if (GetASNHeader(in, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED, &idx,
+                &length, inSz) >= 0) {
+        idx += (word32)length;
+    }
+    /* Consume recipientInfos SET OF header. */
+    if (ret == 0 && GetSet(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume kari [1] header. */
+    if (ret == 0 && GetASNHeader(in, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 1,
+                &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume KARI version. */
+    if (ret == 0 && GetMyVersion(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume KARI originator [0] header. */
+    if (ret == 0 && GetASNHeader(in, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED,
+                &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Skip originator [0] content. */
+    idx += (word32)length;
+    /* Consume KARI ukm [1] if present. */
+    if (ret == 0 && GetASNHeader(in, ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 1,
+                &idx, &length, inSz) >= 0) {
+        idx += (word32) length;
+    }
+    /* Consume KARI keyEncryptionAlgorithm. */
+    if (ret == 0 && GetSequence(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Skip keyEncryptionAlgorithm content. */
+    idx += (word32)length;
+    /* Consume RecipientEncryptedKeys SEQUENCE OF header. */
+    if (ret == 0 && GetSequence(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume RecipientEncryptedKey SEQUENCE header. */
+    if (ret == 0 && GetSequence(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    ridIdx = idx;
+    /* Consume KeyAgreeRecipientIdentifier tag. */
+    if (ret == 0 && GetASNTag(in, &idx, &ridTag, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    /* Consume KeyAgreeRecipientIdentifier length. */
+    if (ret == 0 && GetLength(in, &idx, &length, inSz) < 0) {
+        ret = ASN_PARSE_E;
+    }
+    if (ret == 0) {
+        word32 ridSz = (idx + (word32)length) - ridIdx;
+        if (ridSz > *outSz) {
+            /* Not enough room in output buffer. */
+            ret = BUFFER_E;
+        }
+        else {
+            /* Copy KeyAgreeRecipientIdentifier to output buffer. */
+            XMEMCPY(out, &in[ridIdx], ridSz);
+            *outSz = ridSz;
+        }
+    }
+    return ret;
+}
+
 /* Extract a RecipientEncryptedKey object from a KARI EnvelopedData. */
 int wc_PKCS7_GetEnvelopedDataKariRid(wc_PKCS7* pkcs7, byte* in, word32 inSz,
         byte* output, word32 outputSz)
