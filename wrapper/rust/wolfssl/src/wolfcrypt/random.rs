@@ -28,8 +28,7 @@ fn main() {
 */
 use wolfssl_sys as ws;
 
-use std::mem::MaybeUninit;
-use std::mem;
+use std::mem::{size_of, MaybeUninit};
 
 /// A cryptographically secure random number generator based on the wolfSSL
 /// library.
@@ -100,7 +99,7 @@ impl RNG {
     /// library return code on failure.
     pub fn generate_block<T>(&mut self, buf: &mut [T]) -> Result<(), i32> {
         let ptr = buf.as_mut_ptr() as *mut u8;
-        let size: u32 = (buf.len() * mem::size_of::<T>()) as u32;
+        let size: u32 = (buf.len() * size_of::<T>()) as u32;
         let rc = unsafe { ws::wc_RNG_GenerateBlock(&mut self.wc_rng, ptr, size) };
         if rc == 0 {
             Ok(())
