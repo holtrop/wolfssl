@@ -1,9 +1,17 @@
 use wolfssl::wolfcrypt::random::RNG;
 
-// Test that RNG::new() returns successfull and that drop() does not panic.
+// Test that RNG::new() returns successfully and that drop() does not panic.
 #[test]
 fn test_rng_new_and_drop() {
     let _rng = RNG::new().expect("Failed to create RNG");
+}
+
+// Test that RNG::new_with_nonce() returns successfully and that drop() does
+// not panic.
+#[test]
+fn test_rng_new_with_nonce_and_drop() {
+    let mut nonce = [1, 2, 3, 4];
+    let _rng = RNG::new_with_nonce(&mut nonce).expect("Failed to create RNG");
 }
 
 // Test that generate_byte() returns random values.
