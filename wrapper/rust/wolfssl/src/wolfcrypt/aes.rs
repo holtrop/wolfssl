@@ -21,24 +21,99 @@ fn main() {
 }
 ```
 */
-use wolfssl_sys as ws;
 
 use std::mem::{size_of, MaybeUninit};
+use std::ptr::{null, null_mut};
+use wolfssl_sys as ws;
 
-enum CipherMode {
-    CBC,
-    CCM,
-    CFB,
-    CTR,
-    CTS,
-    EAX,
-    ECB,
-    GCM,
-    OFB,
-    XTS,
+pub struct CBC {
+    ws_aes: ws::Aes,
 }
 
-pub use CipherMode::*;
+pub struct CCM {
+    ws_aes: ws::Aes,
+}
+
+pub struct CFB {
+    ws_aes: ws::Aes,
+}
+
+pub struct CTR {
+    ws_aes: ws::Aes,
+}
+
+pub struct CTS {
+    ws_aes: ws::Aes,
+}
+
+pub struct EAX {
+    ws_aes: ws::Aes,
+}
+
+pub struct EAXStream {
+    ws_aeseax: ws::AesEax,
+}
+
+//            ECB => {
+//                wc_AesSetKey, - does not use IV
+//                wc_AesEcbEncrypt/wc_AesEcbDecrypt,
+//            }
+pub struct ECB {
+    ws_aes: ws::Aes,
+}
+impl ECB {
+    pub fn new() -> Result<Self, i32> {
+        let ws_aes = new_ws_aes()?;
+        let ecb = ECB {ws_aes};
+        Ok(ecb)
+    }
+
+    fn init<T>(&mut self, key: &[T], dir: i32) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = (key.len() * size_of::<T>()) as u32;
+        let rc = unsafe {
+            ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size,
+                null(), dir)
+        };
+        if rc != 0 {
+            Err(rc)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn init_encrypt<T>(&mut self, key: &[T]) -> Result<(), i32> {
+        return self.init(key, ws::AES_ENCRYPTION as i32);
+    }
+
+    pub fn init_decrypt<T>(&mut self, key: &[T]) -> Result<(), i32> {
+        return self.init(key, ws::AES_DECRYPTION as i32);
+    }
+
+//    pub fn encrypt<I,O>(din: &[I], dout: &mut [O]) -> Result<(), i32> {
+//    }
+}
+impl Drop for ECB {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
+    }
+}
+
+pub struct GCM {
+    ws_aes: ws::Aes,
+}
+
+pub struct OFB {
+    ws_aes: ws::Aes,
+}
+
+pub struct XTS {
+    ws_xtsaes: ws::XtsAes,
+}
+
+pub struct XTSStream {
+    ws_xtsaes: ws::XtsAes,
+}
 
 /// Interface to wolfCrypt Advanced Encryption Standard (AES) operations.
 ///
@@ -47,81 +122,139 @@ pub use CipherMode::*;
 /// The `Drop` implementation ensures that the underlying wolfSSL AES context
 /// is correctly freed when the `AES` struct instance goes out of scope,
 /// preventing memory leaks.
-pub struct AES {
-    ws_aes: ws::Aes,
-    mode: CipherMode,
-}
+//pub struct AES {
+//    ws_aes: ws::Aes,
+//    mode: CipherMode,
+//}
 
-impl AES {
-    /// Create and initialize a new `AES` instance.
-    ///
-    /// # Parameters
-    ///
-    /// * `mode`: AES cipher mode (e.g. GCM, CTR, etc.).
-    /// * `key`: Encryption/decryption key.
-    /// * `iv`: Initialization vector to use (optional).
-    ///
-    /// # Returns
-    ///
-    /// A Result which is Ok(AES) on success or an Err containing the wolfSSL
-    /// library return code on failure.
-    pub fn new<KeyT, IvT>(mode: CipherMode, key: &[KeyT], iv: Option<&[IvT]>) -> Result<Self, i32> {
-        let mut ws_aes: MaybeUninit<ws::AES> = MaybeUninit::uninit();
-        let rc = unsafe { ws::wc_AesInit(ws_aes.as_mut_ptr()) };
-        if rc != 0 {
-            return Err(rc);
-        }
-        let ws_aes = unsafe { ws_aes.assume_init() };
-        let key_ptr = key.as_ptr() as *const u8;
-        let key_size = (key.len() * size_of::<KeyT>()) as u32;
-        let iv_ptr = match iv {
-            Some(iv) => iv.as_ptr() as *const u8,
-            None => std::ptr::null(),
-        }
-        let iv_size = match iv {
-            Some(iv) => (iv.len() * size_of::<IvT>()) as u32,
-            None => 0u32,
-        }
-        match mode {
-            CBC => {
-            }
-            CCM => {
-            }
-            CFB => {
-            }
-            CTR => {
-                unsafe { ws::wc_AesCtrSetKey(&mut ws_aes, key_ptr, key_size, iv_ptr, iv_size); }
-            }
-            CTS => {
-            }
-            EAX => {
-            }
-            ECB => {
-            }
-            GCM => {
-            }
-            OFB => {
-            }
-            XTS => {
-            }
-        }
-        let aes = AES {
-            ws_aes,
-            mode,
-        };
-        Ok(aes)
-    }
-}
+//impl AES {
+//    /// Create and initialize a new `AES` instance.
+//    ///
+//    /// # Parameters
+//    ///
+//    /// * `mode`: AES cipher mode (e.g. GCM, CTR, etc.).
+//    /// * `key`: Encryption/decryption key.
+//    /// * `iv`: Initialization vector to use (optional).
+//    ///
+//    /// # Returns
+//    ///
+//    /// A Result which is Ok(AES) on success or an Err containing the wolfSSL
+//    /// library return code on failure.
+//    pub fn new<KeyT, IvT>(mode: CipherMode, key: &[KeyT], iv: Option<&[IvT]>) -> Result<Self, i32> {
+//        let mut ws_aes: MaybeUninit<ws::Aes> = MaybeUninit::uninit();
+//        let rc = unsafe { ws::wc_AesInit(ws_aes.as_mut_ptr()) };
+//        if rc != 0 {
+//            return Err(rc);
+//        }
+//        let ws_aes = unsafe { ws_aes.assume_init() };
+//        let key_ptr = key.as_ptr() as *const u8;
+//        let key_size = (key.len() * size_of::<KeyT>()) as u32;
+//        let iv_ptr = match iv {
+//            Some(iv) => iv.as_ptr() as *const u8,
+//            None => std::ptr::null(),
+//        }
+//        let iv_size = match iv {
+//            Some(iv) => (iv.len() * size_of::<IvT>()) as u32,
+//            None => 0u32,
+//        }
+//        match mode {
+//            CBC => {
+//                wc_AesInit,
+//                wc_AesSetKey,
+//                wc_AesCbcEncrypt/wc_AesCbcDecrypt,
+//            }
+//            CCM => {
+//                wc_AesInit,
+//                wc_AesCcmSetKey,
+//                wc_AesCcmEncrypt/wc_AesCcmDecrypt, - nonce, authTag, authIn
+//            }
+//            CFB => {
+//                wc_AesInit,
+//                wc_AesSetKey,
+//                wc_AesCfbEncrypt/wc_AesCfbDecrypt,
+//            }
+//            CTR => {
+//                wc_AesInit,
+//                wc_AesSetKeyDirect,
+//                wc_AesCtrEncrypt,
+//                unsafe { ws::wc_AesCtrSetKey(&mut ws_aes, key_ptr, key_size, iv_ptr, iv_size); }
+//            }
+//            CTS => {
+//                // one shot:
+//                wc_AesCtrEncrypt/wc_AesCtsDecrypt,
+//                // incremental (use AES struct):
+//                wc_AesInit,
+//                wc_AesSetKey,
+//                wc_AesCtsEncryptUpdate/wc_AesCtsDecryptUpdate,
+//                wc_AesCtsEncryptFinal/wc_AesCtsDecryptFinal,
+//            }
+//            EAX => { // AesEax struct,
+//                // one shot mode:
+//                wc_AesEaxEncryptAuth/wc_AesEaxDecryptAuth,
+//                // incremental (use AesEax struct):
+//                wc_AesEaxInit,
+//                wc_AesEaxEncryptUpdate/wc_AesEaxDecryptUpdate/wc_AesEaxAuthDataUpdate,
+//                wc_AesEaxEncryptFinal/wc_AesEaxDecryptFinal,
+//            }
+//            GCM => {
+//                // one shot:
+//                wc_AesInit,
+//                wc_AesGcmSetKey,
+//                wc_AesGcmEncrypt/wc_AesGcmDecrypt, -- iv, authin, authout,
+//                // chunking:
+//                wc_AesInit,
+//                wc_AesGcmEncryptInit/wc_AesGcmDecryptInit, -- key, iv,
+//                wc_AesGcmEncryptUpdate/wc_AesGcmDecryptUpdate, -- authin
+//                wc_AesGcmEncryptFinal/wc_AesGcmDecryptFinal, -- authtag (out) / authtag (in)
+//            }
+//            OFB => {
+//                wc_AesInit,
+//                wc_AesSetKey,
+//                wc_AesOfbEncrypt/wc_AesOfbDecrypt,
+//            }
+//            XTS => { // XtsAes struct
+//                // one shot:
+//                wc_AesXtsInit,
+//                wc_AesXtsSetKeyNoInit,
+//                wc_AesXtsEncrypt/wc_AesXtsDecrypt, - tweak
+//                wc_AesXtsFree,
+//                // chunking:
+//                wc_AesXtsInit,
+//                wc_AesXtsSetKeyNoInit,
+//                wc_AesXtsEncryptInit/wc_AesXtsDecryptInit,
+//                wc_AesXtsEncryptUpdate/wc_AesXtsDecryptUpdate,
+//                wc_AesXtsEncryptFinal/wc_AesXtsDecryptFinal,
+//            }
+//        }
+//        let aes = AES {
+//            ws_aes,
+//            mode,
+//        };
+//        Ok(aes)
+//    }
+//}
 
-impl Drop for AES {
-    /// Safely free the underlying wolfSSL AES context.
-    ///
-    /// This calls the `wc_AesFree` wolfssl library function.
-    ///
-    /// The Rust Drop trait guarantees that this method is called when the AES
-    /// struct instance goes out of scope, automatically cleaning up resources
-    /// and preventing memory leaks.
-    fn drop(&mut self) {
-        unsafe { ws::wc_AesFree(&mut self.aes); }
+//impl Drop for AES {
+//    /// Safely free the underlying wolfSSL AES context.
+//    ///
+//    /// This calls the `wc_AesFree` wolfssl library function.
+//    ///
+//    /// The Rust Drop trait guarantees that this method is called when the AES
+//    /// struct instance goes out of scope, automatically cleaning up resources
+//    /// and preventing memory leaks.
+//    fn drop(&mut self) {
+//        unsafe { ws::wc_AesFree(&mut self.aes); }
+//    }
+//}
+
+fn new_ws_aes() -> Result<ws::Aes, i32> {
+    let mut ws_aes: MaybeUninit<ws::Aes> = MaybeUninit::uninit();
+    let rc = unsafe {
+        ws::wc_AesInit(ws_aes.as_mut_ptr(), null_mut(), ws::INVALID_DEVID)
+    };
+    if rc != 0 {
+        return Err(rc);
     }
+    let ws_aes = unsafe { ws_aes.assume_init() };
+    Ok(ws_aes)
 }
