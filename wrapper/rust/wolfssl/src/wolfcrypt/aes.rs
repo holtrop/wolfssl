@@ -5,24 +5,19 @@ Encryption Standard (AES) functionality.
 It leverages the `wolfssl-sys` crate for low-level FFI bindings, encapsulating
 the raw C functions in a memory-safe and easy-to-use Rust API.
 
-The primary component is the `RNG` struct, which manages the lifecycle of a
-wolfSSL `WC_RNG` object. It ensures proper initialization and deallocation.
+The primary component is the `AES` struct, which manages the lifecycle of a
+wolfSSL `Aes` object. It ensures proper initialization and deallocation.
 
 # Examples
 
 ```rust
-use wolfssl::wolfcrypt::random::RNG;
+use wolfssl::wolfcrypt::aes::*;
 
 fn main() {
-    // Create a RNG instance.
-    let mut rng = RNG::new().expect("Failed to create RNG");
+    // Create an AES instance.
+    let mut aes = AES::new().expect("Failed to create AES");
 
-    // Generate a single random byte value.
-    let byte = rng.generate_byte().expect("Failed to generate a single byte");
-
-    // Generate a random block.
-    let mut buffer = [0u32; 8];
-    rng.generate_block(&mut buffer).expect("Failed to generate a block");
+    // TODO
 }
 ```
 */
@@ -30,117 +25,103 @@ use wolfssl_sys as ws;
 
 use std::mem::{size_of, MaybeUninit};
 
-/// A cryptographically secure random number generator based on the wolfSSL
-/// library.
-///
-/// This struct wraps the wolfssl `WC_RNG` type, providing a high-level API
-/// for generating random bytes and blocks of data. The `Drop` implementation
-/// ensures that the underlying wolfSSL RNG context is correctly freed when the
-/// `RNG` struct goes out of scope, preventing memory leaks.
-pub struct RNG {
-    wc_rng: ws::WC_RNG,
+enum CipherMode {
+    CBC,
+    CCM,
+    CFB,
+    CTR,
+    CTS,
+    EAX,
+    ECB,
+    GCM,
+    OFB,
+    XTS,
 }
 
-impl RNG {
-    /// Initialize a new `RNG` instance.
-    ///
-    /// This function wraps the wolfssl library function `wc_InitRng`, which
-    /// performs the necessary initialization for the RNG context.
-    ///
-    /// # Returns
-    ///
-    /// A Result which is Ok(RNG) on success or an Err containing the wolfSSL
-    /// library return code on failure.
-    pub fn new() -> Result<Self, i32> {
-        let mut rng: MaybeUninit<RNG> = MaybeUninit::uninit();
-        let rc = unsafe { ws::wc_InitRng(&mut (*rng.as_mut_ptr()).wc_rng) };
-        if rc == 0 {
-            let rng = unsafe { rng.assume_init() };
-            Ok(rng)
-        } else {
-            Err(rc)
-        }
-    }
+pub use CipherMode::*;
 
-    /// Initialize a new `RNG` instance and provide a nonce input.
-    ///
-    /// This function wraps the wolfssl library function `wc_InitRngNonce`,
-    /// which performs the necessary initialization for the RNG context and
-    /// accepts a nonce input buffer.
-    ///
-    /// # Returns
-    ///
-    /// A Result which is Ok(RNG) on success or an Err containing the wolfSSL
-    /// library return code on failure.
-    pub fn new_with_nonce<T>(nonce: &mut [T]) -> Result<Self, i32> {
-        let ptr = nonce.as_mut_ptr() as *mut u8;
-        let size: u32 = (nonce.len() * size_of::<T>()) as u32;
-        let mut rng: MaybeUninit<RNG> = MaybeUninit::uninit();
-        let rc = unsafe {
-            ws::wc_InitRngNonce(&mut (*rng.as_mut_ptr()).wc_rng, ptr, size)
-        };
-        if rc == 0 {
-            let rng = unsafe { rng.assume_init() };
-            Ok(rng)
-        } else {
-            Err(rc)
-        }
-    }
+/// Interface to wolfCrypt Advanced Encryption Standard (AES) operations.
+///
+/// This struct wraps the wolfssl `Aes` type, providing a high-level API
+/// for encrypting and decrypting blocks of data using various AES cipher modes.
+/// The `Drop` implementation ensures that the underlying wolfSSL AES context
+/// is correctly freed when the `AES` struct instance goes out of scope,
+/// preventing memory leaks.
+pub struct AES {
+    ws_aes: ws::Aes,
+    mode: CipherMode,
+}
 
-    /// Generate a single cryptographically secure random byte.
-    ///
-    /// This method calls the `wc_RNG_GenerateByte` wolfSSL library function to
-    /// retrieve a random byte from the underlying wolfSSL RNG context.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` which is `Ok(u8)` containing the random byte on success or
-    /// an `Err` with the wolfssl library return code on failure.
-    pub fn generate_byte(&mut self) -> Result<u8, i32> {
-        let mut b: u8 = 0;
-        let rc = unsafe { ws::wc_RNG_GenerateByte(&mut self.wc_rng, &mut b) };
-        if rc == 0 {
-            Ok(b)
-        } else {
-            Err(rc)
-        }
-    }
-
-    /// Fill a mutable slice with cryptographically secure random data.
-    ///
-    /// This is a generic function that can fill a slice of any type `T` with
-    /// random bytes. It calculates the total size of the slice in bytes and
-    /// calls the underlying `wc_RNG_GenerateBlock` wolfssl library function.
+impl AES {
+    /// Create and initialize a new `AES` instance.
     ///
     /// # Parameters
     ///
-    /// * `buf`: A mutable slice of any type `T` to be filled with random data.
+    /// * `mode`: AES cipher mode (e.g. GCM, CTR, etc.).
+    /// * `key`: Encryption/decryption key.
+    /// * `iv`: Initialization vector to use (optional).
     ///
     /// # Returns
     ///
-    /// A `Result` which is `Ok(())` on success or an `Err` with the wolfssl
+    /// A Result which is Ok(AES) on success or an Err containing the wolfSSL
     /// library return code on failure.
-    pub fn generate_block<T>(&mut self, buf: &mut [T]) -> Result<(), i32> {
-        let ptr = buf.as_mut_ptr() as *mut u8;
-        let size: u32 = (buf.len() * size_of::<T>()) as u32;
-        let rc = unsafe { ws::wc_RNG_GenerateBlock(&mut self.wc_rng, ptr, size) };
-        if rc == 0 {
-            Ok(())
-        } else {
-            Err(rc)
+    pub fn new<KeyT, IvT>(mode: CipherMode, key: &[KeyT], iv: Option<&[IvT]>) -> Result<Self, i32> {
+        let mut ws_aes: MaybeUninit<ws::AES> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_AesInit(ws_aes.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
         }
+        let ws_aes = unsafe { ws_aes.assume_init() };
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = (key.len() * size_of::<KeyT>()) as u32;
+        let iv_ptr = match iv {
+            Some(iv) => iv.as_ptr() as *const u8,
+            None => std::ptr::null(),
+        }
+        let iv_size = match iv {
+            Some(iv) => (iv.len() * size_of::<IvT>()) as u32,
+            None => 0u32,
+        }
+        match mode {
+            CBC => {
+            }
+            CCM => {
+            }
+            CFB => {
+            }
+            CTR => {
+                unsafe { ws::wc_AesCtrSetKey(&mut ws_aes, key_ptr, key_size, iv_ptr, iv_size); }
+            }
+            CTS => {
+            }
+            EAX => {
+            }
+            ECB => {
+            }
+            GCM => {
+            }
+            OFB => {
+            }
+            XTS => {
+            }
+        }
+        let aes = AES {
+            ws_aes,
+            mode,
+        };
+        Ok(aes)
     }
 }
 
-impl Drop for RNG {
-    /// Safely free the underlying wolfSSL RNG context.
+impl Drop for AES {
+    /// Safely free the underlying wolfSSL AES context.
     ///
-    /// This calls the `wc_FreeRng` wolfssl library function.
+    /// This calls the `wc_AesFree` wolfssl library function.
     ///
-    /// The Rust Drop trait guarantees that this method is called when the RNG
-    /// struct goes out of scope, automatically cleaning up resources and
-    /// preventing memory leaks.
+    /// The Rust Drop trait guarantees that this method is called when the AES
+    /// struct instance goes out of scope, automatically cleaning up resources
+    /// and preventing memory leaks.
     fn drop(&mut self) {
-        unsafe { ws::wc_FreeRng(&mut self.wc_rng); }
+        unsafe { ws::wc_AesFree(&mut self.aes); }
     }
 }
