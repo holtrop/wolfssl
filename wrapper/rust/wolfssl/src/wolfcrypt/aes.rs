@@ -4,22 +4,6 @@ Encryption Standard (AES) functionality.
 
 It leverages the `wolfssl-sys` crate for low-level FFI bindings, encapsulating
 the raw C functions in a memory-safe and easy-to-use Rust API.
-
-The primary component is the `AES` struct, which manages the lifecycle of a
-wolfSSL `Aes` object. It ensures proper initialization and deallocation.
-
-# Examples
-
-```rust
-use wolfssl::wolfcrypt::aes::*;
-
-fn main() {
-    // Create an AES instance.
-    let mut aes = AES::new().expect("Failed to create AES");
-
-    // TODO
-}
-```
 */
 
 use std::mem::{size_of, MaybeUninit};
@@ -54,10 +38,6 @@ pub struct EAXStream {
     ws_aeseax: ws::AesEax,
 }
 
-//            ECB => {
-//                wc_AesSetKey, - does not use IV
-//                wc_AesEcbEncrypt/wc_AesEcbDecrypt,
-//            }
 pub struct ECB {
     ws_aes: ws::Aes,
 }
@@ -90,8 +70,43 @@ impl ECB {
         return self.init(key, ws::AES_DECRYPTION as i32);
     }
 
-//    pub fn encrypt<I,O>(din: &[I], dout: &mut [O]) -> Result<(), i32> {
-//    }
+    pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size == out_size {
+            let rc = unsafe {
+                ws::wc_AesEcbEncrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+            };
+            if rc != 0 {
+                Err(rc)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG)
+        }
+    }
+
+    pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size == out_size {
+            let rc = unsafe {
+                ws::wc_AesEcbDecrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+            };
+            if rc != 0 {
+                Err(rc)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG)
+        }
+    }
 }
 impl Drop for ECB {
     fn drop(&mut self) {
