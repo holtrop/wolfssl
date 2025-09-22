@@ -13,6 +13,82 @@ use wolfssl_sys as ws;
 pub struct CBC {
     ws_aes: ws::Aes,
 }
+impl CBC {
+    pub fn new() -> Result<Self, i32> {
+        let ws_aes = new_ws_aes()?;
+        let cbc = CBC {ws_aes};
+        Ok(cbc)
+    }
+
+    fn init(&mut self, key: &[u8], iv: &[u8], dir: i32) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let iv_ptr = iv.as_ptr() as *const u8;
+        if iv.len() as u32 != ws::WC_AES_BLOCK_SIZE {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size,
+                iv_ptr, dir)
+        };
+        if rc != 0 {
+            Err(rc)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn init_encrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
+        return self.init(key, iv, ws::AES_ENCRYPTION as i32);
+    }
+
+    pub fn init_decrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
+        return self.init(key, iv, ws::AES_DECRYPTION as i32);
+    }
+
+    pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size == out_size {
+            let rc = unsafe {
+                ws::wc_AesCbcEncrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+            };
+            if rc != 0 {
+                Err(rc)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG)
+        }
+    }
+
+    pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size == out_size {
+            let rc = unsafe {
+                ws::wc_AesCbcDecrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+            };
+            if rc != 0 {
+                Err(rc)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG)
+        }
+    }
+}
+impl Drop for CBC {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
+    }
+}
 
 pub struct CCM {
     ws_aes: ws::Aes,
@@ -48,9 +124,9 @@ impl ECB {
         Ok(ecb)
     }
 
-    fn init<T>(&mut self, key: &[T], dir: i32) -> Result<(), i32> {
+    fn init(&mut self, key: &[u8], dir: i32) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
-        let key_size = (key.len() * size_of::<T>()) as u32;
+        let key_size = key.len() as u32;
         let rc = unsafe {
             ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size,
                 null(), dir)
@@ -62,11 +138,11 @@ impl ECB {
         }
     }
 
-    pub fn init_encrypt<T>(&mut self, key: &[T]) -> Result<(), i32> {
+    pub fn init_encrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_ENCRYPTION as i32);
     }
 
-    pub fn init_decrypt<T>(&mut self, key: &[T]) -> Result<(), i32> {
+    pub fn init_decrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_DECRYPTION as i32);
     }
 
@@ -173,11 +249,6 @@ pub struct XTSStream {
 //            None => 0u32,
 //        }
 //        match mode {
-//            CBC => {
-//                wc_AesInit,
-//                wc_AesSetKey,
-//                wc_AesCbcEncrypt/wc_AesCbcDecrypt,
-//            }
 //            CCM => {
 //                wc_AesInit,
 //                wc_AesCcmSetKey,
