@@ -359,55 +359,6 @@ impl Drop for CTR {
     }
 }
 
-pub struct CTS {
-    ws_aes: ws::Aes,
-}
-//            CTS => {
-//                // one shot:
-//                wc_AesCtsEncrypt/wc_AesCtsDecrypt,
-//                // incremental (use AES struct):
-//                wc_AesInit,
-//                wc_AesSetKey,
-//                wc_AesCtsEncryptUpdate/wc_AesCtsDecryptUpdate,
-//                wc_AesCtsEncryptFinal/wc_AesCtsDecryptFinal,
-//            }
-impl CTS {
-    pub fn encrypt<I,O>(key: &[u8], iv: &[u8], din: &[I], dout: &mut [O]) -> Result<(), i32> {
-        if iv.len() as u32 != ws::WC_AES_BLOCK_SIZE {
-            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
-        }
-        let key_ptr = key.as_ptr() as *const u8;
-        let key_size = key.len() as u32;
-        let iv_ptr = iv.as_ptr() as *const u8;
-        let in_ptr = din.as_ptr() as *const u8;
-        let in_size = (din.len() * size_of::<I>()) as u32;
-        let out_ptr = dout.as_ptr() as *mut u8;
-        let out_size = (dout.len() * size_of::<O>()) as u32;
-        if in_size > out_size {
-            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
-        }
-        let rc = unsafe {
-            ws::wc_AesCtsEncrypt(key_ptr, key_size, out_ptr, in_ptr, in_size, iv_ptr)
-        };
-        if rc != 0 {
-            return Err(rc);
-        }
-        Ok(())
-    }
-
-    pub fn new() -> Result<Self, i32> {
-        let ws_aes = new_ws_aes()?;
-        let cts = CTS {ws_aes};
-        Ok(cts)
-    }
-
-}
-impl Drop for CTS {
-    fn drop(&mut self) {
-        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
-    }
-}
-
 pub struct EAX {
     ws_aes: ws::Aes,
 }
