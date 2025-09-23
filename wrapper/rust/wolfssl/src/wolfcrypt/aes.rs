@@ -360,20 +360,80 @@ impl Drop for CTR {
 }
 
 pub struct EAX {
-    ws_aes: ws::Aes,
+    ws_aeseax: ws::AesEax,
 }
 //            EAX => { // AesEax struct,
 //                // one shot mode:
 //                wc_AesEaxEncryptAuth/wc_AesEaxDecryptAuth,
 //            }
-
-pub struct EAXStream {
-    ws_aeseax: ws::AesEax,
-}
 //                // incremental (use AesEax struct):
 //                wc_AesEaxInit,
 //                wc_AesEaxEncryptUpdate/wc_AesEaxDecryptUpdate/wc_AesEaxAuthDataUpdate,
 //                wc_AesEaxEncryptFinal/wc_AesEaxDecryptFinal,
+impl EAX {
+    pub fn encrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &mut [u8],
+            din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let nonce_ptr = nonce.as_ptr() as *const u8;
+        let nonce_size = nonce.len() as u32;
+        let auth_ptr = auth.as_ptr() as *const u8;
+        let auth_size = auth.len() as u32;
+        let auth_tag_ptr = auth_tag.as_ptr() as *mut u8;
+        let auth_tag_size = auth_tag.len() as u32;
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = din.len() as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = dout.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesEaxEncryptAuth(key_ptr, key_size, out_ptr,
+                in_ptr, in_size, nonce_ptr, nonce_size,
+                auth_tag_ptr, auth_tag_size,
+                auth_ptr, auth_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &[u8],
+            din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let nonce_ptr = nonce.as_ptr() as *const u8;
+        let nonce_size = nonce.len() as u32;
+        let auth_ptr = auth.as_ptr() as *const u8;
+        let auth_size = auth.len() as u32;
+        let auth_tag_ptr = auth_tag.as_ptr() as *const u8;
+        let auth_tag_size = auth_tag.len() as u32;
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = din.len() as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = dout.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesEaxDecryptAuth(key_ptr, key_size, out_ptr,
+                in_ptr, in_size, nonce_ptr, nonce_size,
+                auth_tag_ptr, auth_tag_size,
+                auth_ptr, auth_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+}
+impl Drop for EAX {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesEaxFree(&mut self.ws_aeseax); }
+    }
+}
 
 pub struct ECB {
     ws_aes: ws::Aes,
