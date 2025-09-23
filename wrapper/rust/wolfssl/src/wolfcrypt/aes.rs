@@ -28,8 +28,7 @@ impl CBC {
             return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
         }
         let rc = unsafe {
-            ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size,
-                iv_ptr, dir)
+            ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size, iv_ptr, dir)
         };
         if rc != 0 {
             return Err(rc);
@@ -305,12 +304,60 @@ impl Drop for CFB {
 pub struct CTR {
     ws_aes: ws::Aes,
 }
-//            CTR => {
-//                wc_AesInit,
-//                wc_AesSetKeyDirect,
-//                wc_AesCtrEncrypt,
-//                unsafe { ws::wc_AesCtrSetKey(&mut ws_aes, key_ptr, key_size, iv_ptr, iv_size); }
-//            }
+impl CTR {
+    pub fn new() -> Result<Self, i32> {
+        let ws_aes = new_ws_aes()?;
+        let ctr = CTR {ws_aes};
+        Ok(ctr)
+    }
+
+    pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let iv_ptr = iv.as_ptr() as *const u8;
+        if iv.len() as u32 != ws::WC_AES_BLOCK_SIZE {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesSetKeyDirect(&mut self.ws_aes, key_ptr, key_size,
+                iv_ptr, ws::AES_ENCRYPTION as i32)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    fn encrypt_decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesCtrEncrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        return self.encrypt_decrypt(din, dout);
+    }
+
+    pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        return self.encrypt_decrypt(din, dout);
+    }
+}
+impl Drop for CTR {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
+    }
+}
 
 pub struct CTS {
     ws_aes: ws::Aes,
