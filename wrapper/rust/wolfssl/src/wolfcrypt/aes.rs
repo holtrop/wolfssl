@@ -362,14 +362,6 @@ impl Drop for CTR {
 pub struct EAX {
     ws_aeseax: ws::AesEax,
 }
-//            EAX => { // AesEax struct,
-//                // one shot mode:
-//                wc_AesEaxEncryptAuth/wc_AesEaxDecryptAuth,
-//            }
-//                // incremental (use AesEax struct):
-//                wc_AesEaxInit,
-//                wc_AesEaxEncryptUpdate/wc_AesEaxDecryptUpdate/wc_AesEaxAuthDataUpdate,
-//                wc_AesEaxEncryptFinal/wc_AesEaxDecryptFinal,
 impl EAX {
     pub fn encrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &mut [u8],
             din: &[I], dout: &mut [O]) -> Result<(), i32> {
