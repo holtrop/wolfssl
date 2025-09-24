@@ -581,11 +581,104 @@ impl Drop for GCM {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
 }
-//                // chunking:
-//                wc_AesInit,
-//                wc_AesGcmEncryptInit/wc_AesGcmDecryptInit, -- key, iv,
-//                wc_AesGcmEncryptUpdate/wc_AesGcmDecryptUpdate, -- authin
-//                wc_AesGcmEncryptFinal/wc_AesGcmDecryptFinal, -- authtag (out) / authtag (in)
+
+pub struct GCMStream {
+    ws_aes: ws::Aes,
+}
+impl GCMStream {
+    pub fn new() -> Result<Self, i32> {
+        let ws_aes = new_ws_aes()?;
+        let gcmstream = GCMStream {ws_aes};
+        Ok(gcmstream)
+    }
+
+    pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let iv_ptr = iv.as_ptr() as *const u8;
+        let iv_size = iv.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesGcmInit(&mut self.ws_aes, key_ptr, key_size, iv_ptr, iv_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O],
+            auth: &[u8]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        let auth_ptr = auth.as_ptr() as *const u8;
+        let auth_size = auth.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesGcmEncryptUpdate(&mut self.ws_aes, out_ptr,
+                in_ptr, in_size,
+                auth_ptr, auth_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt_finalize(&mut self, auth_tag: &mut [u8]) -> Result<(), i32> {
+        let auth_tag_ptr = auth_tag.as_ptr() as *mut u8;
+        let auth_tag_size = auth_tag.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesGcmEncryptFinal(&mut self.ws_aes, auth_tag_ptr, auth_tag_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O],
+            auth: &[u8]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        let auth_ptr = auth.as_ptr() as *const u8;
+        let auth_size = auth.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesGcmDecryptUpdate(&mut self.ws_aes, out_ptr,
+                in_ptr, in_size,
+                auth_ptr, auth_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_finalize(&mut self, auth_tag: &[u8]) -> Result<(), i32> {
+        let auth_tag_ptr = auth_tag.as_ptr() as *const u8;
+        let auth_tag_size = auth_tag.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesGcmDecryptFinal(&mut self.ws_aes, auth_tag_ptr, auth_tag_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+}
+impl Drop for GCMStream {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
+    }
+}
 
 pub struct OFB {
     ws_aes: ws::Aes,
