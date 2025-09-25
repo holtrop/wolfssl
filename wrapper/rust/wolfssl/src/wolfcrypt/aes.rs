@@ -799,6 +799,24 @@ impl XTS {
         Ok(())
     }
 
+    pub fn encrypt_sector<I,O>(&mut self, din: &[I], dout: &mut [O], sector: u64) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsEncryptSector(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, sector)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
     pub fn encrypt_consecutive_sectors<I,O>(&mut self, din: &[I], dout: &mut [O],
             sector: u64, sector_size: u32) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -832,6 +850,24 @@ impl XTS {
             ws::wc_AesXtsDecrypt(&mut self.ws_xtsaes, out_ptr,
                 in_ptr, in_size,
                 tweak_ptr, tweak_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_sector<I,O>(&mut self, din: &[I], dout: &mut [O], sector: u64) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsDecryptSector(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, sector)
         };
         if rc != 0 {
             return Err(rc);
