@@ -750,22 +750,254 @@ impl Drop for OFB {
 pub struct XTS {
     ws_xtsaes: ws::XtsAes,
 }
-//            XTS => { // XtsAes struct
-//                // one shot:
-//                wc_AesXtsInit,
-//                wc_AesXtsSetKeyNoInit,
-//                wc_AesXtsEncrypt/wc_AesXtsDecrypt, - tweak
-//                wc_AesXtsFree,
+impl XTS {
+    pub fn new() -> Result<Self, i32> {
+        let ws_xtsaes = new_ws_xtsaes()?;
+        let xts = XTS {ws_xtsaes};
+        Ok(xts)
+    }
+
+    fn init(&mut self, key: &[u8], dir: i32) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesXtsSetKeyNoInit(&mut self.ws_xtsaes, key_ptr, key_size,
+                dir)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn init_encrypt(&mut self, key: &[u8]) -> Result<(), i32> {
+        return self.init(key, ws::AES_ENCRYPTION as i32);
+    }
+
+    pub fn init_decrypt(&mut self, key: &[u8]) -> Result<(), i32> {
+        return self.init(key, ws::AES_DECRYPTION as i32);
+    }
+
+    pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O], tweak: &[u8]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        let tweak_ptr = tweak.as_ptr() as *const u8;
+        let tweak_size = tweak.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsEncrypt(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size,
+                tweak_ptr, tweak_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt_consecutive_sectors<I,O>(&mut self, din: &[I], dout: &mut [O],
+            sector: u64, sector_size: u32) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsEncryptConsecutiveSectors(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, sector, sector_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O], tweak: &[u8]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        let tweak_ptr = tweak.as_ptr() as *const u8;
+        let tweak_size = tweak.len() as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsDecrypt(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size,
+                tweak_ptr, tweak_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_consecutive_sectors<I,O>(&mut self, din: &[I], dout: &mut [O],
+            sector: u64, sector_size: u32) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsDecryptConsecutiveSectors(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, sector, sector_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+}
+impl Drop for XTS {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesXtsFree(&mut self.ws_xtsaes); }
+    }
+}
 
 pub struct XTSStream {
     ws_xtsaes: ws::XtsAes,
+    ws_xtsaesstreamdata: ws::XtsAesStreamData,
 }
-//                // chunking:
-//                wc_AesXtsInit,
-//                wc_AesXtsSetKeyNoInit,
-//                wc_AesXtsEncryptInit/wc_AesXtsDecryptInit,
-//                wc_AesXtsEncryptUpdate/wc_AesXtsDecryptUpdate,
-//                wc_AesXtsEncryptFinal/wc_AesXtsDecryptFinal,
+impl XTSStream {
+    pub fn new() -> Result<Self, i32> {
+        let ws_xtsaes = new_ws_xtsaes()?;
+        let ws_xtsaesstreamdata: MaybeUninit<ws::XtsAesStreamData> = MaybeUninit::uninit();
+        let ws_xtsaesstreamdata = unsafe { ws_xtsaesstreamdata.assume_init() };
+        let xtsstream = XTSStream {ws_xtsaes, ws_xtsaesstreamdata};
+        Ok(xtsstream)
+    }
+
+    pub fn init_encrypt(&mut self, key: &[u8], tweak: &[u8]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesXtsSetKeyNoInit(&mut self.ws_xtsaes, key_ptr, key_size,
+                ws::AES_ENCRYPTION as i32)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let tweak_ptr = tweak.as_ptr() as *const u8;
+        let tweak_size = tweak.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesXtsEncryptInit(&mut self.ws_xtsaes, tweak_ptr, tweak_size,
+                &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn init_decrypt(&mut self, key: &[u8], tweak: &[u8]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesXtsSetKeyNoInit(&mut self.ws_xtsaes, key_ptr, key_size,
+                ws::AES_DECRYPTION as i32)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let tweak_ptr = tweak.as_ptr() as *const u8;
+        let tweak_size = tweak.len() as u32;
+        let rc = unsafe {
+            ws::wc_AesXtsDecryptInit(&mut self.ws_xtsaes, tweak_ptr, tweak_size,
+                &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsEncryptUpdate(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt_finalize<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsEncryptFinal(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsDecryptUpdate(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt_finalize<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesXtsDecryptFinal(&mut self.ws_xtsaes, out_ptr,
+                in_ptr, in_size, &mut self.ws_xtsaesstreamdata)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+}
+impl Drop for XTSStream {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesXtsFree(&mut self.ws_xtsaes); }
+    }
+}
 
 fn new_ws_aes() -> Result<ws::Aes, i32> {
     let mut ws_aes: MaybeUninit<ws::Aes> = MaybeUninit::uninit();
@@ -777,4 +1009,16 @@ fn new_ws_aes() -> Result<ws::Aes, i32> {
     }
     let ws_aes = unsafe { ws_aes.assume_init() };
     Ok(ws_aes)
+}
+
+fn new_ws_xtsaes() -> Result<ws::XtsAes, i32> {
+    let mut ws_xtsaes: MaybeUninit<ws::XtsAes> = MaybeUninit::uninit();
+    let rc = unsafe {
+        ws::wc_AesXtsInit(ws_xtsaes.as_mut_ptr(), null_mut(), ws::INVALID_DEVID)
+    };
+    if rc != 0 {
+        return Err(rc);
+    }
+    let ws_xtsaes = unsafe { ws_xtsaes.assume_init() };
+    Ok(ws_xtsaes)
 }
