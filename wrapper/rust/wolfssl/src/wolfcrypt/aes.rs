@@ -683,11 +683,69 @@ impl Drop for GCMStream {
 pub struct OFB {
     ws_aes: ws::Aes,
 }
-//            OFB => {
-//                wc_AesInit,
-//                wc_AesSetKey,
-//                wc_AesOfbEncrypt/wc_AesOfbDecrypt,
-//            }
+impl OFB {
+    pub fn new() -> Result<Self, i32> {
+        let ws_aes = new_ws_aes()?;
+        let ofb = OFB {ws_aes};
+        Ok(ofb)
+    }
+
+    pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
+        let key_ptr = key.as_ptr() as *const u8;
+        let key_size = key.len() as u32;
+        let iv_ptr = iv.as_ptr() as *const u8;
+        if iv.len() as u32 != ws::WC_AES_BLOCK_SIZE {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesSetKey(&mut self.ws_aes, key_ptr, key_size, iv_ptr,
+                ws::AES_ENCRYPTION as i32)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesOfbEncrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+        let in_ptr = din.as_ptr() as *const u8;
+        let in_size = (din.len() * size_of::<I>()) as u32;
+        let out_ptr = dout.as_ptr() as *mut u8;
+        let out_size = (dout.len() * size_of::<O>()) as u32;
+        if in_size != out_size {
+            return Err(ws::wolfCrypt_ErrorCodes_BAD_FUNC_ARG);
+        }
+        let rc = unsafe {
+            ws::wc_AesOfbDecrypt(&mut self.ws_aes, out_ptr, in_ptr, in_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+}
+impl Drop for OFB {
+    fn drop(&mut self) {
+        unsafe { ws::wc_AesFree(&mut self.ws_aes); }
+    }
+}
 
 pub struct XTS {
     ws_xtsaes: ws::XtsAes,
