@@ -756,3 +756,91 @@ fn test_xts_consecutive_sectors() {
     xts.decrypt_consecutive_sectors(&cipher, &mut plain_out, sector, sector_size).expect("Error with decrypt_consecutive_sectors()");
     assert_eq!(plain_out, plain);
 }
+
+#[test]
+fn test_xtsstream() {
+    let keys: [u8; 32] = [
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    ];
+    let tweak: [u8; 16] = [
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    ];
+    let plain: [u8; 40] = [
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0xff, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
+    ];
+    let expected_cipher: [u8; 40] = [
+        0xA2, 0x07, 0x47, 0x76, 0x3F, 0xEC, 0x0C, 0x23,
+        0x1B, 0xD0, 0xBD, 0x46, 0x9A, 0x27, 0x38, 0x12,
+        0x95, 0x02, 0x3D, 0x5D, 0xC6, 0x94, 0x51, 0x36,
+        0xA0, 0x85, 0xD2, 0x69, 0x6E, 0x87, 0x0A, 0xBF,
+        0xB5, 0x5A, 0xDD, 0xCB, 0x80, 0xE0, 0xFC, 0xCD
+    ];
+
+    let mut xtsstream = XTSStream::new().expect("Failed to create XTSStream");
+    xtsstream.init_encrypt(&keys, &tweak).expect("Error with init_encrypt()");
+    let mut cipher: [u8; 40] = [0; 40];
+    xtsstream.encrypt_update(&plain[0..16], &mut cipher[0..16]).expect("Error with encrypt_update()");
+    xtsstream.encrypt_final(&plain[16..40], &mut cipher[16..40]).expect("Error with encrypt_final()");
+    assert_eq!(cipher, expected_cipher);
+
+    xtsstream.init_decrypt(&keys, &tweak).expect("Error with init_decrypt()");
+    let mut plain_out: [u8; 40] = [0; 40];
+    xtsstream.decrypt_update(&cipher[0..16], &mut plain_out[0..16]).expect("Error with decrypt_update()");
+    xtsstream.decrypt_final(&cipher[16..40], &mut plain_out[16..40]).expect("Error with decrypt_final()");
+    assert_eq!(plain_out, plain);
+}
+
+#[test]
+fn test_xtsstream_big_msg() {
+    let key: [u8; 32] = [
+        0xa1, 0xb9, 0x0c, 0xba, 0x3f, 0x06, 0xac, 0x35,
+        0x3b, 0x2c, 0x34, 0x38, 0x76, 0x08, 0x17, 0x62,
+        0x09, 0x09, 0x23, 0x02, 0x6e, 0x91, 0x77, 0x18,
+        0x15, 0xf2, 0x9d, 0xab, 0x01, 0x93, 0x2f, 0x2f
+    ];
+    let tweak: [u8; 16] = [
+        0x4f, 0xae, 0xf7, 0x11, 0x7c, 0xda, 0x59, 0xc6,
+        0x6e, 0x4b, 0x92, 0x01, 0x3e, 0x76, 0x8a, 0xd5
+    ];
+
+    let mut xtsstream = XTSStream::new().expect("Failed to create XTSStream");
+    xtsstream.init_encrypt(&key, &tweak).expect("Error with init_encrypt()");
+    let mut cipher: [u8; 384] = [0; 384];
+    let mut i = 0;
+    while i < BIG_MSG.len() {
+        let remaining = BIG_MSG.len() - i;
+        if remaining < 32 {
+            xtsstream.encrypt_final(&BIG_MSG[i..BIG_MSG.len()], &mut cipher[i..BIG_MSG.len()]).expect("Error with encrypt_final()");
+            i += remaining;
+        } else {
+            let end = i + 16;
+            xtsstream.encrypt_update(&BIG_MSG[i..end], &mut cipher[i..end]).expect("Error with encrypt_update()");
+            i += 16;
+        }
+    }
+
+    xtsstream.init_decrypt(&key, &tweak).expect("Error with init_decrypt()");
+    let mut plain_out: [u8; 384] = [0; 384];
+    let mut i = 0;
+    while i < BIG_MSG.len() {
+        let remaining = BIG_MSG.len() - i;
+        if remaining < 32 {
+            xtsstream.decrypt_final(&cipher[i..BIG_MSG.len()], &mut plain_out[i..BIG_MSG.len()]).expect("Error with decrypt_final()");
+            i += remaining;
+        } else {
+            let end = i + 16;
+            xtsstream.decrypt_update(&cipher[i..end], &mut plain_out[i..end]).expect("Error with decrypt_update()");
+            i += 16;
+        }
+    }
+
+    assert_eq!(plain_out, BIG_MSG);
+}
