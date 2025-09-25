@@ -471,7 +471,7 @@ fn test_gcmstream_encrypt_decrypt() {
             i += chunk_size;
         }
         let mut auth_tag: [u8; 16] = [0; 16];
-        gcmstream.encrypt_finalize(&mut auth_tag).expect("Error with encrypt_finalize()");
+        gcmstream.encrypt_final(&mut auth_tag).expect("Error with encrypt_final()");
         assert_eq!(c_out, c1);
         assert_eq!(auth_tag, t1);
     }

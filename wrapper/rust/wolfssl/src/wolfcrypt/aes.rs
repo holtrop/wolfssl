@@ -628,7 +628,7 @@ impl GCMStream {
         Ok(())
     }
 
-    pub fn encrypt_finalize(&mut self, auth_tag: &mut [u8]) -> Result<(), i32> {
+    pub fn encrypt_final(&mut self, auth_tag: &mut [u8]) -> Result<(), i32> {
         let auth_tag_ptr = auth_tag.as_ptr() as *mut u8;
         let auth_tag_size = auth_tag.len() as u32;
         let rc = unsafe {
@@ -662,7 +662,7 @@ impl GCMStream {
         Ok(())
     }
 
-    pub fn decrypt_finalize(&mut self, auth_tag: &[u8]) -> Result<(), i32> {
+    pub fn decrypt_final(&mut self, auth_tag: &[u8]) -> Result<(), i32> {
         let auth_tag_ptr = auth_tag.as_ptr() as *const u8;
         let auth_tag_size = auth_tag.len() as u32;
         let rc = unsafe {
@@ -939,7 +939,7 @@ impl XTSStream {
         Ok(())
     }
 
-    pub fn encrypt_finalize<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+    pub fn encrypt_final<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
         let out_ptr = dout.as_ptr() as *mut u8;
@@ -975,7 +975,7 @@ impl XTSStream {
         Ok(())
     }
 
-    pub fn decrypt_finalize<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
+    pub fn decrypt_final<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
         let out_ptr = dout.as_ptr() as *mut u8;
