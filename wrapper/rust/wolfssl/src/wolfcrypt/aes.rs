@@ -10,10 +10,41 @@ use std::mem::{size_of, MaybeUninit};
 use std::ptr::{null, null_mut};
 use wolfssl_sys as ws;
 
+/// Advanced Encryption Standard (AES) Cipher Block Chaining (CBC) support.
+///
+/// # Example
+/// ```rust
+/// use wolfssl::wolfcrypt::aes::*;
+/// let mut cbc = CBC::new().expect("Failed to create CBC");
+/// let key: &[u8; 16] = b"0123456789abcdef";
+/// let iv: &[u8; 16] = b"1234567890abcdef";
+/// let msg: [u8; 16] = [
+///     0x6e, 0x6f, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
+///     0x68, 0x65, 0x20, 0x74, 0x69, 0x6d, 0x65, 0x20,
+/// ];
+/// let expected_cipher: [u8; 16] = [
+///     0x95, 0x94, 0x92, 0x57, 0x5f, 0x42, 0x81, 0x53,
+///     0x2c, 0xcc, 0x9d, 0x46, 0x77, 0xa2, 0x33, 0xcb
+/// ];
+/// cbc.init_encrypt(key, iv).expect("Error with init_encrypt()");
+/// let mut cipher: [u8; 16] = [0; 16];
+/// cbc.encrypt(&msg, &mut cipher).expect("Error with encrypt()");
+/// assert_eq!(&cipher, &expected_cipher);
+/// let mut plain_out = [0; 16];
+/// cbc.init_decrypt(key, iv).expect("Error with init_decrypt()");
+/// cbc.decrypt(&cipher, &mut plain_out).expect("Error with decrypt()");
+/// assert_eq!(&plain_out, &msg);
+/// ```
 pub struct CBC {
     ws_aes: ws::Aes,
 }
 impl CBC {
+    /// Create a new `CBC` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(CBC) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let cbc = CBC {ws_aes};
@@ -36,14 +67,59 @@ impl CBC {
         Ok(())
     }
 
+    /// Initialize a CBC instance for encryption.
+    ///
+    /// This method must be called before calling `encrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use. The
+    /// IV must be 16 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_encrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         return self.init(key, iv, ws::AES_ENCRYPTION as i32);
     }
 
+    /// Initialize a CBC instance for decryption.
+    ///
+    /// This method must be called before calling `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the decryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use. The
+    /// IV must be 16 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_decrypt(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         return self.init(key, iv, ws::AES_DECRYPTION as i32);
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: A slice containing the data to encrypt. The size of the data
+    /// must be a multiple of 16 bytes.
+    /// * `dout`: A slice in which to store the encrypted data. The size of
+    /// the data must match that of the `din` slice.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -61,6 +137,21 @@ impl CBC {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: A slice containing the data to decrypt. The size of the data
+    /// must be a multiple of 16 bytes.
+    /// * `dout`: A slice in which to store the decrypted data. The size of
+    /// the data must match that of the `din` slice.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -79,21 +170,86 @@ impl CBC {
     }
 }
 impl Drop for CBC {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
 }
 
+/// Advanced Encryption Standard (AES) counter with cipher block chaining
+/// message authentication code (CCM) support.
+///
+/// # Example
+/// ```rust
+/// use wolfssl::wolfcrypt::aes::*;
+/// let key: [u8; 16] = [
+///     0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
+///     0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf
+/// ];
+/// let nonce: [u8; 13] = [
+///     0x00, 0x00, 0x00, 0x03, 0x02, 0x01, 0x00, 0xa0,
+///     0xa1, 0xa2, 0xa3, 0xa4, 0xa5
+/// ];
+/// let plaintext: [u8; 23] = [
+///     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+///     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+///     0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e
+/// ];
+/// let auth_data: [u8; 8] = [
+///     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+/// ];
+/// let expected_ciphertext: [u8; 23] = [
+///     0x58, 0x8c, 0x97, 0x9a, 0x61, 0xc6, 0x63, 0xd2,
+///     0xf0, 0x66, 0xd0, 0xc2, 0xc0, 0xf9, 0x89, 0x80,
+///     0x6d, 0x5f, 0x6b, 0x61, 0xda, 0xc3, 0x84
+/// ];
+/// let expected_auth_tag: [u8; 8] = [
+///     0x17, 0xe8, 0xd1, 0x2c, 0xfd, 0xf9, 0x26, 0xe0
+/// ];
+///
+/// let mut ccm = CCM::new().expect("Failed to create CCM");
+/// ccm.init(&key).expect("Error with init()");
+/// let mut auth_tag_out: [u8; 8] = [0; 8];
+/// let mut cipher_out: [u8; 23] = [0; 23];
+/// ccm.encrypt(&plaintext, &mut cipher_out,
+///     &nonce, &auth_data, &mut auth_tag_out).expect("Error with encrypt()");
+/// assert_eq!(cipher_out, expected_ciphertext);
+/// assert_eq!(auth_tag_out, expected_auth_tag);
+/// ccm.init(&key).expect("Error with init()");
+/// let mut plain_out: [u8; 23] = [0; 23];
+/// ccm.decrypt(&cipher_out, &mut plain_out,
+///     &nonce, &auth_data, &auth_tag_out).expect("Error with decrypt()");
+/// assert_eq!(plain_out, plaintext);
+/// ```
 pub struct CCM {
     ws_aes: ws::Aes,
 }
 impl CCM {
+    /// Create a new `CCM` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(CCM) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let ccm = CCM {ws_aes};
         Ok(ccm)
     }
 
+    /// Initialize a CCM instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt()` or `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -161,6 +317,7 @@ impl CCM {
     }
 }
 impl Drop for CCM {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -170,12 +327,34 @@ pub struct CFB {
     ws_aes: ws::Aes,
 }
 impl CFB {
+    /// Create a new `CFB` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(CFB) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let cfb = CFB {ws_aes};
         Ok(cfb)
     }
 
+    /// Initialize a CFB instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt()`, `encrypt`()`,
+    /// `encrypt8()`, `decrypt()`, `decrypt1()`, or `decrypt8()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use. The
+    /// IV must be 16 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -296,6 +475,7 @@ impl CFB {
     }
 }
 impl Drop for CFB {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -305,12 +485,33 @@ pub struct CTR {
     ws_aes: ws::Aes,
 }
 impl CTR {
+    /// Create a new `CTR` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(CTR) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let ctr = CTR {ws_aes};
         Ok(ctr)
     }
 
+    /// Initialize a CTR instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt()` or `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use. The
+    /// IV must be 16 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -354,13 +555,13 @@ impl CTR {
     }
 }
 impl Drop for CTR {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
 }
 
 pub struct EAX {
-    ws_aeseax: ws::AesEax,
 }
 impl EAX {
     pub fn encrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &mut [u8],
@@ -421,16 +622,17 @@ impl EAX {
         Ok(())
     }
 }
-impl Drop for EAX {
-    fn drop(&mut self) {
-        unsafe { ws::wc_AesEaxFree(&mut self.ws_aeseax); }
-    }
-}
 
 pub struct ECB {
     ws_aes: ws::Aes,
 }
 impl ECB {
+    /// Create a new `ECB` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(ECB) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let ecb = ECB {ws_aes};
@@ -493,6 +695,7 @@ impl ECB {
     }
 }
 impl Drop for ECB {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -502,12 +705,31 @@ pub struct GCM {
     ws_aes: ws::Aes,
 }
 impl GCM {
+    /// Create a new `GCM` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(GCM) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let gcm = GCM {ws_aes};
         Ok(gcm)
     }
 
+    /// Initialize a GCM instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt()` or `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -577,6 +799,7 @@ impl GCM {
     }
 }
 impl Drop for GCM {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -586,12 +809,33 @@ pub struct GCMStream {
     ws_aes: ws::Aes,
 }
 impl GCMStream {
+    /// Create a new `GCMStream` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(GCMStream) on success or an Err containing the
+    /// wolfSSL library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let gcmstream = GCMStream {ws_aes};
         Ok(gcmstream)
     }
 
+    /// Initialize a GCMStream instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt_update()`,
+    /// `encrypt_final()`, `decrypt_update()`, or `decrypt_final()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -675,6 +919,7 @@ impl GCMStream {
     }
 }
 impl Drop for GCMStream {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -684,12 +929,33 @@ pub struct OFB {
     ws_aes: ws::Aes,
 }
 impl OFB {
+    /// Create a new `OFB` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(OFB) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_aes = new_ws_aes()?;
         let ofb = OFB {ws_aes};
         Ok(ofb)
     }
 
+    /// Initialize a OFB instance for encryption or decryption.
+    ///
+    /// This method must be called before calling `encrypt()` or `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `iv`: A slice containing the initialization vector (IV) to use. The
+    /// IV must be 16 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init(&mut self, key: &[u8], iv: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -742,6 +1008,7 @@ impl OFB {
     }
 }
 impl Drop for OFB {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesFree(&mut self.ws_aes); }
     }
@@ -751,6 +1018,12 @@ pub struct XTS {
     ws_xtsaes: ws::XtsAes,
 }
 impl XTS {
+    /// Create a new `XTS` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(XTS) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_xtsaes = new_ws_xtsaes()?;
         let xts = XTS {ws_xtsaes};
@@ -895,6 +1168,7 @@ impl XTS {
     }
 }
 impl Drop for XTS {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesXtsFree(&mut self.ws_xtsaes); }
     }
@@ -905,6 +1179,12 @@ pub struct XTSStream {
     ws_xtsaesstreamdata: ws::XtsAesStreamData,
 }
 impl XTSStream {
+    /// Create a new `XTSStream` instance.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(XTSStream) on success or an Err containing the
+    /// wolfSSL library return code on failure.
     pub fn new() -> Result<Self, i32> {
         let ws_xtsaes = new_ws_xtsaes()?;
         let ws_xtsaesstreamdata: MaybeUninit<ws::XtsAesStreamData> = MaybeUninit::uninit();
@@ -1030,6 +1310,7 @@ impl XTSStream {
     }
 }
 impl Drop for XTSStream {
+    /// Safely free the wolfSSL resources.
     fn drop(&mut self) {
         unsafe { ws::wc_AesXtsFree(&mut self.ws_xtsaes); }
     }

@@ -54,24 +54,24 @@ const BIG_MSG: [u8; 384] = [
 #[test]
 fn test_cbc_encrypt_decrypt() {
     let mut cbc = CBC::new().expect("Failed to create CBC");
-    let key_128: &[u8; 16] = b"0123456789abcdef";
+    let key: &[u8; 16] = b"0123456789abcdef";
     let iv: &[u8; 16] = b"1234567890abcdef";
     let msg: [u8; 16] = [
         0x6e, 0x6f, 0x77, 0x20, 0x69, 0x73, 0x20, 0x74,
         0x68, 0x65, 0x20, 0x74, 0x69, 0x6d, 0x65, 0x20,
     ];
-    let verify_cbc_128: [u8; 16] = [
+    let expected_cipher: [u8; 16] = [
         0x95, 0x94, 0x92, 0x57, 0x5f, 0x42, 0x81, 0x53,
         0x2c, 0xcc, 0x9d, 0x46, 0x77, 0xa2, 0x33, 0xcb
     ];
-    cbc.init_encrypt(key_128, iv).expect("Error with init_encrypt()");
-    let mut outbuf: [u8; 16] = [0; 16];
-    cbc.encrypt(&msg, &mut outbuf).expect("Error with encrypt()");
-    assert_eq!(&outbuf, &verify_cbc_128);
-    outbuf = [0; 16];
-    cbc.init_decrypt(key_128, iv).expect("Error with init_decrypt()");
-    cbc.decrypt(&verify_cbc_128, &mut outbuf).expect("Error with decrypt()");
-    assert_eq!(&outbuf, &msg);
+    cbc.init_encrypt(key, iv).expect("Error with init_encrypt()");
+    let mut cipher: [u8; 16] = [0; 16];
+    cbc.encrypt(&msg, &mut cipher).expect("Error with encrypt()");
+    assert_eq!(&cipher, &expected_cipher);
+    let mut plain_out = [0; 16];
+    cbc.init_decrypt(key, iv).expect("Error with init_decrypt()");
+    cbc.decrypt(&cipher, &mut plain_out).expect("Error with decrypt()");
+    assert_eq!(&plain_out, &msg);
 }
 
 #[test]
@@ -375,7 +375,7 @@ fn test_gcm_encrypt_decrypt() {
         0x6f, 0x58, 0xa9, 0x3f, 0xe1, 0xd2, 0x07, 0xfa,
         0xe4, 0xed, 0x2f, 0x6d
     ];
-    let plain1: [u8; 32] = [
+    let plain: [u8; 32] = [
         0xcc, 0x38, 0xbc, 0xcd, 0x6b, 0xc5, 0x36, 0xad,
         0x91, 0x9b, 0x13, 0x95, 0xf5, 0xd6, 0x38, 0x01,
         0xf9, 0x9f, 0x80, 0x68, 0xd6, 0x5c, 0xa5, 0xac,
@@ -385,31 +385,31 @@ fn test_gcm_encrypt_decrypt() {
         0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73,
         0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1
     ];
-    let expected_cipher1: [u8; 32] = [
+    let expected_cipher: [u8; 32] = [
         0xdf, 0xce, 0x4e, 0x9c, 0xd2, 0x91, 0x10, 0x3d,
         0x7f, 0xe4, 0xe6, 0x33, 0x51, 0xd9, 0xe7, 0x9d,
         0x3d, 0xfd, 0x39, 0x1e, 0x32, 0x67, 0x10, 0x46,
         0x58, 0x21, 0x2d, 0xa9, 0x65, 0x21, 0xb7, 0xdb
     ];
-    let expected_auth_tag1: [u8; 16] = [
+    let expected_auth_tag: [u8; 16] = [
         0x54, 0x24, 0x65, 0xef, 0x59, 0x93, 0x16, 0xf7,
         0x3a, 0x7a, 0x56, 0x05, 0x09, 0xa2, 0xd9, 0xf2
     ];
     let mut gcm = GCM::new().expect("Failed to create GCM");
     gcm.init(&key1).expect("Error with init()");
-    let mut cipher1: [u8; 32] = [0; 32];
-    let mut auth_tag1: [u8; 16] = [0; 16];
-    gcm.encrypt(&plain1, &mut cipher1, &iv1, &aad1, &mut auth_tag1).expect("Error with encrypt()");
-    assert_eq!(cipher1, expected_cipher1);
-    assert_eq!(auth_tag1, expected_auth_tag1);
-    let mut plain1_dec: [u8; 32] = [0; 32];
-    gcm.decrypt(&cipher1, &mut plain1_dec, &iv1, &aad1, &auth_tag1).expect("Error with decrypt()");
-    assert_eq!(plain1_dec, plain1);
+    let mut cipher: [u8; 32] = [0; 32];
+    let mut auth_tag: [u8; 16] = [0; 16];
+    gcm.encrypt(&plain, &mut cipher, &iv1, &aad1, &mut auth_tag).expect("Error with encrypt()");
+    assert_eq!(cipher, expected_cipher);
+    assert_eq!(auth_tag, expected_auth_tag);
+    let mut plain_out: [u8; 32] = [0; 32];
+    gcm.decrypt(&cipher, &mut plain_out, &iv1, &aad1, &auth_tag).expect("Error with decrypt()");
+    assert_eq!(plain_out, plain);
 }
 
 #[test]
 fn test_gcmstream_encrypt_decrypt() {
-    let p: [u8; 60] = [
+    let plain: [u8; 60] = [
         0xd9, 0x31, 0x32, 0x25, 0xf8, 0x84, 0x06, 0xe5,
         0xa5, 0x59, 0x09, 0xc5, 0xaf, 0xf5, 0x26, 0x9a,
         0x86, 0xa7, 0xa9, 0x53, 0x15, 0x34, 0xf7, 0xda,
@@ -419,12 +419,12 @@ fn test_gcmstream_encrypt_decrypt() {
         0xb1, 0x6a, 0xed, 0xf5, 0xaa, 0x0d, 0xe6, 0x57,
         0xba, 0x63, 0x7b, 0x39
     ];
-    let a: [u8; 20] = [
+    let auth: [u8; 20] = [
         0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
         0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
         0xab, 0xad, 0xda, 0xd2
     ];
-    let k1: [u8; 32] = [
+    let key: [u8; 32] = [
         0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
         0x6d, 0x6a, 0x8f, 0x94, 0x67, 0x30, 0x83, 0x08,
         0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
@@ -434,7 +434,7 @@ fn test_gcmstream_encrypt_decrypt() {
         0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce, 0xdb, 0xad,
         0xde, 0xca, 0xf8, 0x88
     ];
-    let c1: [u8; 60] = [
+    let expected_cipher: [u8; 60] = [
         0x52, 0x2d, 0xc1, 0xf0, 0x99, 0x56, 0x7d, 0x07,
         0xf4, 0x7f, 0x37, 0xa3, 0x2a, 0x84, 0x42, 0x7d,
         0x64, 0x3a, 0x8c, 0xdc, 0xbf, 0xe5, 0xc0, 0xc9,
@@ -444,52 +444,52 @@ fn test_gcmstream_encrypt_decrypt() {
         0xc5, 0xf6, 0x1e, 0x63, 0x93, 0xba, 0x7a, 0x0a,
         0xbc, 0xc9, 0xf6, 0x62
     ];
-    let t1: [u8; 16] = [
+    let expected_auth_tag: [u8; 16] = [
         0x76, 0xfc, 0x6e, 0xce, 0x0f, 0x4e, 0x17, 0x68,
         0xcd, 0xdf, 0x88, 0x53, 0xbb, 0x2d, 0x55, 0x1b
     ];
     let mut gcmstream = GCMStream::new().expect("Failed to create GCMStream");
-    for chunk_size in 1..=a.len() {
-        gcmstream.init(&k1, &iv).expect("Error with init()");
-        let mut c_out: [u8; 60] = [0; 60];
+    for chunk_size in 1..=auth.len() {
+        gcmstream.init(&key, &iv).expect("Error with init()");
+        let mut cipher: [u8; 60] = [0; 60];
         let mut i = 0;
-        while i < a.len() {
+        while i < auth.len() {
             let mut end = i + chunk_size;
-            if end > a.len() {
-                end = a.len()
+            if end > auth.len() {
+                end = auth.len()
             }
-            gcmstream.encrypt_update(&p[0..0], &mut c_out[0..0], &a[i..end]).expect("Error with encrypt_update()");
+            gcmstream.encrypt_update(&plain[0..0], &mut cipher[0..0], &auth[i..end]).expect("Error with encrypt_update()");
             i += chunk_size;
         }
         i = 0;
-        while i < p.len() {
+        while i < plain.len() {
             let mut end = i + chunk_size;
-            if end > p.len() {
-                end = p.len()
+            if end > plain.len() {
+                end = plain.len()
             }
-            gcmstream.encrypt_update(&p[i..end], &mut c_out[i..end], &a[0..0]).expect("Error with encrypt_update()");
+            gcmstream.encrypt_update(&plain[i..end], &mut cipher[i..end], &auth[0..0]).expect("Error with encrypt_update()");
             i += chunk_size;
         }
         let mut auth_tag: [u8; 16] = [0; 16];
         gcmstream.encrypt_final(&mut auth_tag).expect("Error with encrypt_final()");
-        assert_eq!(c_out, c1);
-        assert_eq!(auth_tag, t1);
+        assert_eq!(cipher, expected_cipher);
+        assert_eq!(auth_tag, expected_auth_tag);
     }
 }
 
 #[test]
 fn test_ofb_encrypt_decrypt() {
-    let key1: [u8; 32] = [
+    let key: [u8; 32] = [
         0xc4,0xc7,0xfa,0xd6,0x53,0x5c,0xb8,0x71,
         0x4a,0x5c,0x40,0x77,0x9a,0x8b,0xa1,0xd2,
         0x53,0x3e,0x23,0xb4,0xb2,0x58,0x73,0x2a,
         0x5b,0x78,0x01,0xf4,0xe3,0x71,0xa7,0x94
     ];
-    let iv1: [u8; 16] = [
+    let iv: [u8; 16] = [
         0x5e,0xb9,0x33,0x13,0xb8,0x71,0xff,0x16,
         0xb9,0x8a,0x9b,0xcb,0x43,0x33,0x0d,0x6f
     ];
-    let plain1: [u8; 48] = [
+    let plain: [u8; 48] = [
         0x6d,0x0b,0xb0,0x79,0x63,0x84,0x71,0xe9,
         0x39,0xd4,0x53,0x14,0x86,0xc1,0x4c,0x25,
         0x9a,0xee,0xc6,0xf3,0xc0,0x0d,0xfd,0xd6,
@@ -497,7 +497,7 @@ fn test_ofb_encrypt_decrypt() {
         0xcc,0x12,0x2c,0x4e,0x0c,0x17,0x15,0xef,
         0x55,0xf3,0x99,0x5a,0x6b,0xf0,0x2a,0x4c
     ];
-    let cipher1: [u8; 48] = [
+    let expected_cipher: [u8; 48] = [
         0x0f,0x54,0x61,0x71,0x59,0xd0,0x3f,0xfc,
         0x1b,0xfa,0xfb,0x60,0x29,0x30,0xd7,0x00,
         0xf4,0xa4,0xa8,0xe6,0xdd,0x93,0x94,0x46,
@@ -506,65 +506,65 @@ fn test_ofb_encrypt_decrypt() {
         0xfd,0x64,0xa2,0xe1,0xe2,0x76,0x13,0xb0
     ];
     let mut ofb = OFB::new().expect("Failed to create OFB");
-    ofb.init(&key1, &iv1).expect("Error with init()");
+    ofb.init(&key, &iv).expect("Error with init()");
     let mut cipher: [u8; 48] = [0; 48];
-    ofb.encrypt(&plain1, &mut cipher).expect("Error with encrypt()");
-    assert_eq!(cipher, cipher1);
-    ofb.init(&key1, &iv1).expect("Error with init()");
-    let mut plain: [u8; 48] = [0; 48];
-    ofb.decrypt(&cipher, &mut plain).expect("Error with decrypt()");
-    assert_eq!(plain, plain1);
+    ofb.encrypt(&plain, &mut cipher).expect("Error with encrypt()");
+    assert_eq!(cipher, expected_cipher);
+    ofb.init(&key, &iv).expect("Error with init()");
+    let mut plain_out: [u8; 48] = [0; 48];
+    ofb.decrypt(&cipher, &mut plain_out).expect("Error with decrypt()");
+    assert_eq!(plain_out, plain);
 }
 
 #[test]
 fn test_xts_one_shot() {
-    let key1: [u8; 32] = [
+    let key: [u8; 32] = [
         0xa1, 0xb9, 0x0c, 0xba, 0x3f, 0x06, 0xac, 0x35,
         0x3b, 0x2c, 0x34, 0x38, 0x76, 0x08, 0x17, 0x62,
         0x09, 0x09, 0x23, 0x02, 0x6e, 0x91, 0x77, 0x18,
         0x15, 0xf2, 0x9d, 0xab, 0x01, 0x93, 0x2f, 0x2f
     ];
-    let tweak1: [u8; 16] = [
+    let tweak: [u8; 16] = [
         0x4f, 0xae, 0xf7, 0x11, 0x7c, 0xda, 0x59, 0xc6,
         0x6e, 0x4b, 0x92, 0x01, 0x3e, 0x76, 0x8a, 0xd5
     ];
-    let plain1: [u8; 16] = [
+    let plain: [u8; 16] = [
         0xeb, 0xab, 0xce, 0x95, 0xb1, 0x4d, 0x3c, 0x8d,
         0x6f, 0xb3, 0x50, 0x39, 0x07, 0x90, 0x31, 0x1c
     ];
-    let expected_cipher1: [u8; 16] = [
+    let expected_cipher: [u8; 16] = [
         0x77, 0x8a, 0xe8, 0xb4, 0x3c, 0xb9, 0x8d, 0x5a,
         0x82, 0x50, 0x81, 0xd5, 0xbe, 0x47, 0x1c, 0x63
     ];
-    let partial1: [u8; 24] = [
+    let partial: [u8; 24] = [
         0xeb, 0xab, 0xce, 0x95, 0xb1, 0x4d, 0x3c, 0x8d,
         0x6f, 0xb3, 0x50, 0x39, 0x07, 0x90, 0x31, 0x1c,
         0x6e, 0x4b, 0x92, 0x01, 0x3e, 0x76, 0x8a, 0xd5
     ];
-    let expected_partial1_cipher: [u8; 24] = [
+    let expected_partial_cipher: [u8; 24] = [
         0x2b, 0xf7, 0x2c, 0xf3, 0xeb, 0x85, 0xef, 0x7b,
         0x0b, 0x76, 0xa0, 0xaa, 0xf3, 0x3f, 0x25, 0x8b,
         0x77, 0x8a, 0xe8, 0xb4, 0x3c, 0xb9, 0x8d, 0x5a
     ];
 
     let mut xts = XTS::new().expect("Failed to create XTS");
-    xts.init_encrypt(&key1).expect("Error with init_encrypt()");
-    let mut cipher1: [u8; 16] = [0; 16];
-    xts.encrypt(&plain1, &mut cipher1, &tweak1).expect("Error with encrypt()");
-    assert_eq!(cipher1, expected_cipher1);
-    xts.init_decrypt(&key1).expect("Error with init_decrypt()");
-    let mut plain1_out: [u8; 16] = [0; 16];
-    xts.decrypt(&cipher1, &mut plain1_out, &tweak1).expect("Error with decrypt()");
-    assert_eq!(plain1_out, plain1);
+    xts.init_encrypt(&key).expect("Error with init_encrypt()");
+    let mut cipher: [u8; 16] = [0; 16];
+    xts.encrypt(&plain, &mut cipher, &tweak).expect("Error with encrypt()");
+    assert_eq!(cipher, expected_cipher);
+    xts.init_decrypt(&key).expect("Error with init_decrypt()");
+    let mut plain_out: [u8; 16] = [0; 16];
+    xts.decrypt(&cipher, &mut plain_out, &tweak).expect("Error with decrypt()");
+    assert_eq!(plain_out, plain);
 
-    xts.init_encrypt(&key1).expect("Error with init_encrypt()");
-    let mut partial1_cipher: [u8; 24] = [0; 24];
-    xts.encrypt(&partial1, &mut partial1_cipher, &tweak1).expect("Error with encrypt()");
-    assert_eq!(partial1_cipher, expected_partial1_cipher);
-    xts.init_decrypt(&key1).expect("Error with init_decrypt()");
-    let mut partial1_out: [u8; 24] = [0; 24];
-    xts.decrypt(&partial1_cipher, &mut partial1_out, &tweak1).expect("Error with decrypt()");
-    assert_eq!(partial1_out, partial1);
+    xts.init_encrypt(&key).expect("Error with init_encrypt()");
+    let mut partial_cipher: [u8; 24] = [0; 24];
+    xts.encrypt(&partial, &mut partial_cipher, &tweak).expect("Error with encrypt()");
+    assert_eq!(partial_cipher, expected_partial_cipher);
+    xts.init_decrypt(&key).expect("Error with init_decrypt()");
+    let mut partial_out: [u8; 24] = [0; 24];
+    xts.decrypt(&partial_cipher, &mut partial_out, &tweak).expect("Error with decrypt()");
+    assert_eq!(partial_out, partial);
 }
 
 #[test]
