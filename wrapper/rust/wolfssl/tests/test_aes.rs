@@ -367,11 +367,11 @@ fn test_ecb_encrypt_decrypt() {
 
 #[test]
 fn test_gcm_encrypt_decrypt() {
-    let key1: [u8; 16] = [
+    let key: [u8; 16] = [
         0x29, 0x8e, 0xfa, 0x1c, 0xcf, 0x29, 0xcf, 0x62,
         0xae, 0x68, 0x24, 0xbf, 0xc1, 0x95, 0x57, 0xfc
     ];
-    let iv1: [u8; 12] = [
+    let iv: [u8; 12] = [
         0x6f, 0x58, 0xa9, 0x3f, 0xe1, 0xd2, 0x07, 0xfa,
         0xe4, 0xed, 0x2f, 0x6d
     ];
@@ -381,7 +381,7 @@ fn test_gcm_encrypt_decrypt() {
         0xf9, 0x9f, 0x80, 0x68, 0xd6, 0x5c, 0xa5, 0xac,
         0x63, 0x87, 0x2d, 0xaf, 0x16, 0xb9, 0x39, 0x01
     ];
-    let aad1: [u8; 16] = [
+    let auth: [u8; 16] = [
         0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73,
         0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1
     ];
@@ -396,14 +396,14 @@ fn test_gcm_encrypt_decrypt() {
         0x3a, 0x7a, 0x56, 0x05, 0x09, 0xa2, 0xd9, 0xf2
     ];
     let mut gcm = GCM::new().expect("Failed to create GCM");
-    gcm.init(&key1).expect("Error with init()");
+    gcm.init(&key).expect("Error with init()");
     let mut cipher: [u8; 32] = [0; 32];
     let mut auth_tag: [u8; 16] = [0; 16];
-    gcm.encrypt(&plain, &mut cipher, &iv1, &aad1, &mut auth_tag).expect("Error with encrypt()");
+    gcm.encrypt(&plain, &mut cipher, &iv, &auth, &mut auth_tag).expect("Error with encrypt()");
     assert_eq!(cipher, expected_cipher);
     assert_eq!(auth_tag, expected_auth_tag);
     let mut plain_out: [u8; 32] = [0; 32];
-    gcm.decrypt(&cipher, &mut plain_out, &iv1, &aad1, &auth_tag).expect("Error with decrypt()");
+    gcm.decrypt(&cipher, &mut plain_out, &iv, &auth, &auth_tag).expect("Error with decrypt()");
     assert_eq!(plain_out, plain);
 }
 
