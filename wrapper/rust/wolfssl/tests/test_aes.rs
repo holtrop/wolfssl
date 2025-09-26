@@ -335,11 +335,11 @@ fn test_eax_one_shot_encrypt_decrypt() {
     ];
     let mut cipher: [u8; 32] = [0; 32];
     let mut auth_tag: [u8; 16] = [0; 16];
-    EAX::encrypt(&key, &nonce, auth, &mut auth_tag, &msg, &mut cipher).expect("Error with encrypt()");
+    EAX::encrypt(&msg, &mut cipher, &key, &nonce, auth, &mut auth_tag).expect("Error with encrypt()");
     assert_eq!(cipher, expected_cipher);
     assert_eq!(auth_tag, expected_auth_tag);
     let mut plain: [u8; 32] = [0; 32];
-    EAX::decrypt(&key, &nonce, auth, &auth_tag, &cipher, &mut plain).expect("Error with decrypt()");
+    EAX::decrypt(&cipher, &mut plain, &key, &nonce, auth, &auth_tag).expect("Error with decrypt()");
     assert_eq!(plain, msg);
 }
 

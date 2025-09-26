@@ -111,10 +111,10 @@ impl CBC {
     ///
     /// # Parameters
     ///
-    /// * `din`: A slice containing the data to encrypt. The size of the data
-    /// must be a multiple of 16 bytes.
-    /// * `dout`: A slice in which to store the encrypted data. The size of
-    /// the data must match that of the `din` slice.
+    /// * `din`: Data to encrypt. The size of the data must be a multiple of
+    /// 16 bytes.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
     ///
     /// # Returns
     ///
@@ -143,9 +143,9 @@ impl CBC {
     ///
     /// # Parameters
     ///
-    /// * `din`: A slice containing the data to decrypt. The size of the data
-    /// must be a multiple of 16 bytes.
-    /// * `dout`: A slice in which to store the decrypted data. The size of
+    /// * `din`: Data to decrypt. The size of the data must be a multiple of
+    /// 16 bytes.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
     /// the data must match that of the `din` slice.
     ///
     /// # Returns
@@ -262,6 +262,23 @@ impl CCM {
         Ok(())
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `nonce`: Nonce (number used once).
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Buffer in which to store the authentication tag.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O,N,A>(&mut self, din: &[I], dout: &mut [O], nonce: &[N], auth: &[A], auth_tag: &mut [A]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -289,6 +306,23 @@ impl CCM {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `nonce`: Nonce (number used once).
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Authentication tag input to verify.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O,N,A>(&mut self, din: &[I], dout: &mut [O], nonce: &[N], auth: &[A], auth_tag: &[A]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -677,18 +711,35 @@ impl Drop for CTR {
 /// ];
 /// let mut cipher: [u8; 32] = [0; 32];
 /// let mut auth_tag: [u8; 16] = [0; 16];
-/// EAX::encrypt(&key, &nonce, auth, &mut auth_tag, &msg, &mut cipher).expect("Error with encrypt()");
+/// EAX::encrypt(&msg, &mut cipher, &key, &nonce, auth, &mut auth_tag).expect("Error with encrypt()");
 /// assert_eq!(cipher, expected_cipher);
 /// assert_eq!(auth_tag, expected_auth_tag);
 /// let mut plain: [u8; 32] = [0; 32];
-/// EAX::decrypt(&key, &nonce, auth, &auth_tag, &cipher, &mut plain).expect("Error with decrypt()");
+/// EAX::decrypt(&cipher, &mut plain, &key, &nonce, auth, &auth_tag).expect("Error with decrypt()");
 /// assert_eq!(plain, msg);
 /// ```
 pub struct EAX {
 }
 impl EAX {
-    pub fn encrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &mut [u8],
-            din: &[I], dout: &mut [O]) -> Result<(), i32> {
+    /// Encrypt data.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `key`: Encryption key to use. The key size must be 16, 24, or 32
+    /// bytes.
+    /// * `nonce`: Nonce (number used once).
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Buffer in which to store the authentication tag.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
+    pub fn encrypt<I,O>(din: &[I], dout: &mut [O], key: &[u8], nonce: &[u8],
+            auth: &[u8], auth_tag: &mut [u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
         let nonce_ptr = nonce.as_ptr() as *const u8;
@@ -716,8 +767,25 @@ impl EAX {
         Ok(())
     }
 
-    pub fn decrypt<I,O>(key: &[u8], nonce: &[u8], auth: &[u8], auth_tag: &[u8],
-            din: &[I], dout: &mut [O]) -> Result<(), i32> {
+    /// Decrypt data.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `key`: Decryption key to use. The key size must be 16, 24, or 32
+    /// bytes.
+    /// * `nonce`: Nonce (number used once).
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Authentication tag input to verify.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
+    pub fn decrypt<I,O>(din: &[I], dout: &mut [O], key: &[u8], nonce: &[u8],
+            auth: &[u8], auth_tag: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
         let nonce_ptr = nonce.as_ptr() as *const u8;
@@ -799,14 +867,55 @@ impl ECB {
         Ok(())
     }
 
+    /// Initialize a ECB instance for encryption.
+    ///
+    /// This method must be called before calling `encrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_encrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_ENCRYPTION as i32);
     }
 
+    /// Initialize a ECB instance for decryption.
+    ///
+    /// This method must be called before calling `decrypt()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the decryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_decrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_DECRYPTION as i32);
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt. The size of the data must be a multiple of
+    /// 16 bytes.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -824,6 +933,21 @@ impl ECB {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt. The size of the data must be a multiple of
+    /// 16 bytes.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -936,6 +1060,23 @@ impl GCM {
         Ok(())
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `iv`: Initialization vector to use for the encryption operation.
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Buffer in which to store the authentication tag.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O], iv: &[u8],
             auth: &[u8], auth_tag: &mut [u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -964,6 +1105,23 @@ impl GCM {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `iv`: Initialization vector to use for the decryption operation.
+    /// * `auth`: Authentication data input.
+    /// * `auth_tag`: Authentication tag input to verify.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O], iv: &[u8],
             auth: &[u8], auth_tag: &[u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -1119,6 +1277,27 @@ impl GCMStream {
         Ok(())
     }
 
+    /// Add a chunk of data to encrypt or authentication data.
+    ///
+    /// All authentication data must be passed in to update before the
+    /// plaintext to encrypt. The last part of the authentication data can be
+    /// passed in with the same call as the first part of the plaintext data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    /// The `encrypt_final()` method must be called to finalize the encryption
+    /// operation and retrieve the calculated authentication tag.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `auth`: Authentication data input.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O],
             auth: &[u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -1141,6 +1320,21 @@ impl GCMStream {
         Ok(())
     }
 
+    /// Finalize encryption.
+    ///
+    /// The `init()` method must be called before calling this method.
+    /// The `encrypt_update()` method must be called one or more times before
+    /// calling this method to supply authentication data and plaintext input
+    /// for encryption.
+    ///
+    /// # Parameters
+    ///
+    /// * `auth_tag`: Buffer in which to store the authentication tag.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_final(&mut self, auth_tag: &mut [u8]) -> Result<(), i32> {
         let auth_tag_ptr = auth_tag.as_ptr() as *mut u8;
         let auth_tag_size = auth_tag.len() as u32;
@@ -1153,6 +1347,27 @@ impl GCMStream {
         Ok(())
     }
 
+    /// Add a chunk of data to decrypt or authentication data.
+    ///
+    /// All authentication data must be passed in to update before the
+    /// ciphertext to decrypt. The last part of the authentication data can be
+    /// passed in with the same call as the first part of the ciphertext data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    /// The `decrypt_final()` method must be called to finalize the decryption
+    /// operation and verify the authentication tag.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `auth`: Authentication data input.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O],
             auth: &[u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -1175,6 +1390,21 @@ impl GCMStream {
         Ok(())
     }
 
+    /// Finalize decryption.
+    ///
+    /// The `init()` method must be called before calling this method.
+    /// The `decrypt_update()` method must be called one or more times before
+    /// calling this method to supply authentication data and ciphertext input
+    /// for decryption.
+    ///
+    /// # Parameters
+    ///
+    /// * `auth_tag`: Authentication tag input to verify.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_final(&mut self, auth_tag: &[u8]) -> Result<(), i32> {
         let auth_tag_ptr = auth_tag.as_ptr() as *const u8;
         let auth_tag_size = auth_tag.len() as u32;
@@ -1283,6 +1513,20 @@ impl OFB {
         Ok(())
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1300,6 +1544,20 @@ impl OFB {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1410,14 +1668,55 @@ impl XTS {
         Ok(())
     }
 
+    /// Initialize a XTS instance for encryption.
+    ///
+    /// This method must be called before calling any encryption methods.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_encrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_ENCRYPTION as i32);
     }
 
+    /// Initialize a XTS instance for decryption.
+    ///
+    /// This method must be called before calling any decryption methods.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the decryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_decrypt(&mut self, key: &[u8]) -> Result<(), i32> {
         return self.init(key, ws::AES_DECRYPTION as i32);
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `tweak`: Tweak value to use for the encryption operation.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O], tweak: &[u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1439,6 +1738,26 @@ impl XTS {
         Ok(())
     }
 
+    /// Encrypt a sector of data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    ///
+    /// This method is the same as `encrypt()` except that a sector number is
+    /// taken instead of a tweak buffer. Internally the sector number is
+    /// expanded into the tweak value to use.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `sector`: Sector number to use for encryption operation. This value
+    /// is expanded into a tweak value.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_sector<I,O>(&mut self, din: &[I], dout: &mut [O], sector: u64) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1457,6 +1776,27 @@ impl XTS {
         Ok(())
     }
 
+    /// Encrypt consecutive sectors of data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    ///
+    /// This method is the same as `encrypt_sector()` except that the sector
+    /// number is automatically incremented every `sector_size` bytes.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `sector`: Sector number to use for encryption operation. This value
+    /// is expanded into a tweak value.
+    /// * `sector_size`: Sector size. The `sector` value is internally
+    /// incremented every `sector_size` bytes.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_consecutive_sectors<I,O>(&mut self, din: &[I], dout: &mut [O],
             sector: u64, sector_size: u32) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -1476,6 +1816,21 @@ impl XTS {
         Ok(())
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `tweak`: Tweak value to use for the decryption operation.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O], tweak: &[u8]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1497,6 +1852,26 @@ impl XTS {
         Ok(())
     }
 
+    /// Decrypt a sector of data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    ///
+    /// This method is the same as `decrypt()` except that a sector number is
+    /// taken instead of a tweak buffer. Internally the sector number is
+    /// expanded into the tweak value to use.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `sector`: Sector number to use for decryption operation. This value
+    /// is expanded into a tweak value.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_sector<I,O>(&mut self, din: &[I], dout: &mut [O], sector: u64) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1515,6 +1890,27 @@ impl XTS {
         Ok(())
     }
 
+    /// Decrypt consecutive sectors of data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    ///
+    /// This method is the same as `decrypt_sector()` except that the sector
+    /// number is automatically incremented every `sector_size` bytes.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    /// * `sector`: Sector number to use for decryption operation. This value
+    /// is expanded into a tweak value.
+    /// * `sector_size`: Sector size. The `sector` value is internally
+    /// incremented every `sector_size` bytes.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_consecutive_sectors<I,O>(&mut self, din: &[I], dout: &mut [O],
             sector: u64, sector_size: u32) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
@@ -1607,6 +2003,20 @@ impl XTSStream {
         Ok(xtsstream)
     }
 
+    /// Initialize a XTSStream instance for encryption.
+    ///
+    /// This method must be called before calling `encrypt_update()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the encryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `tweak`: Tweak value to use for the encryption operation.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_encrypt(&mut self, key: &[u8], tweak: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -1629,6 +2039,20 @@ impl XTSStream {
         Ok(())
     }
 
+    /// Initialize a XTSStream instance for decryption.
+    ///
+    /// This method must be called before calling `decrypt_update()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `key`: A slice containing the decryption key to use. The key must be
+    /// 16, 24, or 32 bytes in length.
+    /// * `tweak`: Tweak value to use for the decryption operation.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn init_decrypt(&mut self, key: &[u8], tweak: &[u8]) -> Result<(), i32> {
         let key_ptr = key.as_ptr() as *const u8;
         let key_size = key.len() as u32;
@@ -1651,6 +2075,24 @@ impl XTSStream {
         Ok(())
     }
 
+    /// Add a chunk of data to encrypt.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    /// The `encrypt_final()` method must be called to finalize the encryption
+    /// operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt. The size of the data must be a multiple of
+    /// 16 bytes. A final chunk of data that is not a multiple of 16 bytes can
+    /// be passed in to `encrypt_final()`.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1669,6 +2111,23 @@ impl XTSStream {
         Ok(())
     }
 
+    /// Encrypt the final chunk of data.
+    ///
+    /// The `init_encrypt()` method must be called before calling this method.
+    /// The `encrypt_update()` method may be called prior to this to encrypt
+    /// blocks of data in chunks.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt. The size of the data must be 0 or at least
+    /// 16 bytes. It does not need to be a multiple of 16 bytes.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt_final<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1687,6 +2146,24 @@ impl XTSStream {
         Ok(())
     }
 
+    /// Add a chunk of data to decrypt.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    /// The `decrypt_final()` method must be called to finalize the decryption
+    /// operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt. The size of the data must be a multiple of
+    /// 16 bytes. A final chunk of data that is not a multiple of 16 bytes can
+    /// be passed in to `decrypt_final()`.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_update<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -1705,6 +2182,23 @@ impl XTSStream {
         Ok(())
     }
 
+    /// Decrypt the final chunk of data.
+    ///
+    /// The `init_decrypt()` method must be called before calling this method.
+    /// The `decrypt_update()` method may be called prior to this to decrypt
+    /// blocks of data in chunks.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt. The size of the data must be 0 or at least
+    /// 16 bytes. It does not need to be a multiple of 16 bytes.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt_final<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
