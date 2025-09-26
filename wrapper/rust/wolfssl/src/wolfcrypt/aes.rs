@@ -10,7 +10,7 @@ use std::mem::{size_of, MaybeUninit};
 use std::ptr::{null, null_mut};
 use wolfssl_sys as ws;
 
-/// Advanced Encryption Standard (AES) Cipher Block Chaining (CBC) support.
+/// AES Cipher Block Chaining (CBC) mode.
 ///
 /// # Example
 /// ```rust
@@ -176,8 +176,7 @@ impl Drop for CBC {
     }
 }
 
-/// Advanced Encryption Standard (AES) counter with cipher block chaining
-/// message authentication code (CCM) support.
+/// AES Counter with CBC-MAC (CCM) mode.
 ///
 /// # Example
 /// ```rust
@@ -357,7 +356,7 @@ impl Drop for CCM {
     }
 }
 
-/// Advanced Encryption Standard (AES) cipher feedback (CFB) support.
+/// AES Cipher FeedBack (CFB) mode.
 ///
 /// # Example
 /// ```rust
@@ -415,7 +414,7 @@ impl CFB {
 
     /// Initialize a CFB instance for encryption or decryption.
     ///
-    /// This method must be called before calling `encrypt()`, `encrypt`()`,
+    /// This method must be called before calling `encrypt()`, `encrypt1()`,
     /// `encrypt8()`, `decrypt()`, `decrypt1()`, or `decrypt8()`.
     ///
     /// # Parameters
@@ -446,6 +445,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Encrypt data in full-block CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -463,6 +476,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Encrypt data in 1-bit CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt1<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -480,6 +507,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Encrypt data in 8-bit CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt8<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -497,6 +538,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Decrypt data in full-block CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -514,6 +569,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Decrypt data in 1-bit CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt1<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -531,6 +600,20 @@ impl CFB {
         Ok(())
     }
 
+    /// Decrypt data in 8-bit CFB mode.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt8<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         let in_ptr = din.as_ptr() as *const u8;
         let in_size = (din.len() * size_of::<I>()) as u32;
@@ -555,7 +638,7 @@ impl Drop for CFB {
     }
 }
 
-/// Advanced Encryption Standard (AES) counter (CTR) support.
+/// AES Counter (CTR) mode.
 ///
 /// # Example
 /// ```rust
@@ -663,10 +746,38 @@ impl CTR {
         Ok(())
     }
 
+    /// Encrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to encrypt.
+    /// * `dout`: Buffer in which to store the encrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn encrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         return self.encrypt_decrypt(din, dout);
     }
 
+    /// Decrypt data.
+    ///
+    /// The `init()` method must be called before calling this method.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Data to decrypt.
+    /// * `dout`: Buffer in which to store the decrypted data. The size of
+    /// the buffer must match that of the `din` buffer.
+    ///
+    /// # Returns
+    ///
+    /// A Result which is Ok(()) on success or an Err containing the wolfSSL
+    /// library return code on failure.
     pub fn decrypt<I,O>(&mut self, din: &[I], dout: &mut [O]) -> Result<(), i32> {
         return self.encrypt_decrypt(din, dout);
     }
@@ -678,8 +789,7 @@ impl Drop for CTR {
     }
 }
 
-/// Advanced Encryption Standard (AES) encrypt-then-authenticate-then-translate
-/// (EAX) support.
+/// AES Encrypt-Then-Authenticate-Then-Translate (EAX) mode.
 ///
 /// # Example
 /// ```rust
@@ -814,7 +924,7 @@ impl EAX {
     }
 }
 
-/// Advanced Encryption Standard (AES) electronic codebook (ECB) support.
+/// AES Electronic CodeBook (ECB) mode.
 ///
 /// # Example
 /// ```rust
@@ -972,7 +1082,7 @@ impl Drop for ECB {
     }
 }
 
-/// Advanced Encryption Standard (AES) Galois/counter mode (GCM) support.
+/// AES Galois/Counter Mode (GCM) mode (one shot functionality).
 ///
 /// This struct provides one-shot encryption and decryption functionality.
 /// For streaming/chunking functionality, see the `GCMStream` struct instead.
@@ -1157,7 +1267,7 @@ impl Drop for GCM {
     }
 }
 
-/// Advanced Encryption Standard (AES) Galois/counter mode (GCM) support.
+/// AES Galois/Counter Mode (GCM) mode (streaming functionality).
 ///
 /// This struct provides streaming/chunking encryption and decryption
 /// functionality. For one-shot functionality, see the `GCM` struct instead.
@@ -1424,7 +1534,7 @@ impl Drop for GCMStream {
     }
 }
 
-/// Advanced Encryption Standard (AES) output feedback (OFB) support.
+/// AES Output FeedBack (OFB) mode.
 ///
 /// # Example
 /// ```rust
@@ -1582,8 +1692,8 @@ impl Drop for OFB {
     }
 }
 
-/// Advanced Encryption Standard (AES) XEX-based tweaked-codebook mode with
-/// ciphertext stealing (XTS) support.
+/// AES XEX-based Tweaked-Codebook Mode With Ciphertext Stealing (XTS) support
+/// (one shot functionality).
 ///
 /// This struct provides one-shot encryption and decryption functionality.
 /// For streaming/chunking functionality, see the `XTSStream` struct instead.
@@ -1937,8 +2047,8 @@ impl Drop for XTS {
     }
 }
 
-/// Advanced Encryption Standard (AES) XEX-based tweaked-codebook mode with
-/// ciphertext stealing (XTS) support.
+/// AES XEX-based Tweaked-Codebook Mode With Ciphertext Stealing (XTS) support
+/// (streaming functionality).
 ///
 /// This struct provides streaming/chunking encryption and decryption
 /// functionality. For one-shot functionality, see the `XTS` struct instead.
