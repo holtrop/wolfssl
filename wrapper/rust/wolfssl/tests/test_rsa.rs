@@ -1,3 +1,4 @@
+use std::fs;
 use wolfssl::wolfcrypt::random::RNG;
 use wolfssl::wolfcrypt::rsa::*;
 
@@ -42,4 +43,44 @@ fn test_rsa_generate() {
     assert!(e_size > 0);
     assert_ne!(n, [0; 256]);
     assert!(n_size > 0);
+}
+
+#[test]
+fn test_rsa_encrypt_decrypt() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let key_path = "../../../certs/client-key.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
+    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+    let plain: &[u8] = b"Test message";
+    let mut enc: [u8; 512] = [0; 512];
+    let enc_len = rsa.public_encrypt(plain, &mut enc, &mut rng).expect("Error with public_encrypt()");
+    assert!(enc_len > 0 && enc_len <= 512);
+    let mut plain_out: [u8; 512] = [0; 512];
+    let dec_len = rsa.private_decrypt(&enc[0..enc_len], &mut plain_out).expect("Error with private_decrypt()");
+    assert!(dec_len as usize == plain.len());
+    assert_eq!(plain_out[0..dec_len], *plain);
+}
+
+#[test]
+fn test_rsa_pss() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+
+    let key_path = "../../../certs/client-keyPub.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_public_from_der(&der).expect("Error with new_public_from_der()");
+    // TODO: can remove this next line?
+    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+    let msg: &[u8] = b"This is the string to be signed!";
+    let mut signature: [u8; 512] = [0; 512];
+    let sig_len = rsa.pss_sign(msg, &mut signature, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256, &mut rng).expect("Error with pss_sign()");
+    assert!(sig_len > 0 && sig_len <= 512);
+
+//    let key_path = "../../../certs/client-key.der";
+//    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+//    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
+//    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+//    let signature = &signature[0..sig_len];
+//    let mut verify_out: [u8; 512] = [0; 512];
+//    rsa.pss_verify(signature, &mut verify_out, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify()");
 }

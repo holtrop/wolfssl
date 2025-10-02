@@ -18,26 +18,26 @@ pub struct RSA {
 }
 
 impl RSA {
-    pub const HASH_TYPE_NONE       : i32 = ws::wc_HashType_WC_HASH_TYPE_NONE as i32;
-    pub const HASH_TYPE_MD2        : i32 = ws::wc_HashType_WC_HASH_TYPE_MD2 as i32;
-    pub const HASH_TYPE_MD4        : i32 = ws::wc_HashType_WC_HASH_TYPE_MD4 as i32;
-    pub const HASH_TYPE_MD5        : i32 = ws::wc_HashType_WC_HASH_TYPE_MD5 as i32;
-    pub const HASH_TYPE_SHA        : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA as i32;
-    pub const HASH_TYPE_SHA224     : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA224 as i32;
-    pub const HASH_TYPE_SHA256     : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA256 as i32;
-    pub const HASH_TYPE_SHA384     : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA384 as i32;
-    pub const HASH_TYPE_SHA512     : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA512 as i32;
-    pub const HASH_TYPE_MD5_SHA    : i32 = ws::wc_HashType_WC_HASH_TYPE_MD5_SHA as i32;
-    pub const HASH_TYPE_SHA3_224   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_224 as i32;
-    pub const HASH_TYPE_SHA3_256   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_256 as i32;
-    pub const HASH_TYPE_SHA3_384   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_384 as i32;
-    pub const HASH_TYPE_SHA3_512   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_512 as i32;
-    pub const HASH_TYPE_BLAKE2B    : i32 = ws::wc_HashType_WC_HASH_TYPE_BLAKE2B as i32;
-    pub const HASH_TYPE_BLAKE2S    : i32 = ws::wc_HashType_WC_HASH_TYPE_BLAKE2S as i32;
-    pub const HASH_TYPE_SHA512_224 : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA512_224 as i32;
-    pub const HASH_TYPE_SHA512_256 : i32 = ws::wc_HashType_WC_HASH_TYPE_SHA512_256 as i32;
-    pub const HASH_TYPE_SHAKE128   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHAKE128 as i32;
-    pub const HASH_TYPE_SHAKE256   : i32 = ws::wc_HashType_WC_HASH_TYPE_SHAKE256 as i32;
+    pub const HASH_TYPE_NONE       : u32 = ws::wc_HashType_WC_HASH_TYPE_NONE;
+    pub const HASH_TYPE_MD2        : u32 = ws::wc_HashType_WC_HASH_TYPE_MD2;
+    pub const HASH_TYPE_MD4        : u32 = ws::wc_HashType_WC_HASH_TYPE_MD4;
+    pub const HASH_TYPE_MD5        : u32 = ws::wc_HashType_WC_HASH_TYPE_MD5;
+    pub const HASH_TYPE_SHA        : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA;
+    pub const HASH_TYPE_SHA224     : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA224;
+    pub const HASH_TYPE_SHA256     : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA256;
+    pub const HASH_TYPE_SHA384     : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA384;
+    pub const HASH_TYPE_SHA512     : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA512;
+    pub const HASH_TYPE_MD5_SHA    : u32 = ws::wc_HashType_WC_HASH_TYPE_MD5_SHA;
+    pub const HASH_TYPE_SHA3_224   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_224;
+    pub const HASH_TYPE_SHA3_256   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_256;
+    pub const HASH_TYPE_SHA3_384   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_384;
+    pub const HASH_TYPE_SHA3_512   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_512;
+    pub const HASH_TYPE_BLAKE2B    : u32 = ws::wc_HashType_WC_HASH_TYPE_BLAKE2B;
+    pub const HASH_TYPE_BLAKE2S    : u32 = ws::wc_HashType_WC_HASH_TYPE_BLAKE2S;
+    pub const HASH_TYPE_SHA512_224 : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA512_224;
+    pub const HASH_TYPE_SHA512_256 : u32 = ws::wc_HashType_WC_HASH_TYPE_SHA512_256;
+    pub const HASH_TYPE_SHAKE128   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHAKE128;
+    pub const HASH_TYPE_SHAKE256   : u32 = ws::wc_HashType_WC_HASH_TYPE_SHAKE256;
 
     pub const MGF1NONE       : i32 = ws::WC_MGF1NONE as i32;
     pub const MGF1SHA1       : i32 = ws::WC_MGF1SHA1 as i32;
@@ -177,12 +177,12 @@ impl RSA {
         Ok(())
     }
 
-    pub fn get_encrypt_size(&self) -> Result<i32, i32> {
+    pub fn get_encrypt_size(&self) -> Result<usize, i32> {
         let rc = unsafe { ws::wc_RsaEncryptSize(&self.wc_rsakey) };
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
     pub fn check(&mut self) -> Result<(), i32> {
@@ -193,7 +193,7 @@ impl RSA {
         Ok(())
     }
 
-    pub fn public_encrypt(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<i32, i32> {
+    pub fn public_encrypt(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -205,10 +205,10 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
-    pub fn private_decrypt(&mut self, din: &[u8], dout: &mut [u8]) -> Result<(), i32> {
+    pub fn private_decrypt(&mut self, din: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -217,13 +217,13 @@ impl RSA {
             ws::wc_RsaPrivateDecrypt(din_ptr, din_size, dout_ptr, dout_size,
                 &mut self.wc_rsakey)
         };
-        if rc != 0 {
+        if rc < 0 {
             return Err(rc);
         }
-        Ok(())
+        Ok(rc as usize)
     }
 
-    pub fn pss_sign(&mut self, din: &[u8], dout: &mut [u8], hash_algo: u32, mgf: i32, rng: &mut RNG) -> Result<i32, i32> {
+    pub fn pss_sign(&mut self, din: &[u8], dout: &mut [u8], hash_algo: u32, mgf: i32, rng: &mut RNG) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -235,7 +235,7 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
     pub fn pss_check_padding(&mut self, din: &[u8], sig: &mut [u8], hash_algo: u32) -> Result<(), i32> {
@@ -253,7 +253,7 @@ impl RSA {
         Ok(())
     }
 
-    pub fn pss_verify(&mut self, din: &[u8], dout: &mut [u8], hash_algo: u32, mgf: i32) -> Result<i32, i32> {
+    pub fn pss_verify(&mut self, din: &[u8], dout: &mut [u8], hash_algo: u32, mgf: i32) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -265,10 +265,10 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
-    pub fn pss_verify_check(&mut self, din: &[u8], dout: &mut [u8], digest: &[u8], hash_algo: u32, mgf: i32) -> Result<i32, i32> {
+    pub fn pss_verify_check(&mut self, din: &[u8], dout: &mut [u8], digest: &[u8], hash_algo: u32, mgf: i32) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -282,10 +282,10 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
-    pub fn rsa_direct(&mut self, din: &[u8], dout: &mut [u8], typ: i32, rng: &mut RNG) -> Result<u32, i32> {
+    pub fn rsa_direct(&mut self, din: &[u8], dout: &mut [u8], typ: i32, rng: &mut RNG) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -297,7 +297,7 @@ impl RSA {
         if rc != 0 {
             return Err(rc);
         }
-        Ok(dout_size)
+        Ok(dout_size as usize)
     }
 
     pub fn set_rng(&mut self, rng: &mut RNG) -> Result<(), i32> {
@@ -310,7 +310,7 @@ impl RSA {
         Ok(())
     }
 
-    pub fn ssl_sign(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<i32, i32> {
+    pub fn ssl_sign(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -322,10 +322,10 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 
-    pub fn ssl_verify(&mut self, din: &[u8], dout: &mut [u8]) -> Result<i32, i32> {
+    pub fn ssl_verify(&mut self, din: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
         let dout_ptr = dout.as_ptr() as *mut u8;
@@ -337,7 +337,7 @@ impl RSA {
         if rc < 0 {
             return Err(rc);
         }
-        Ok(rc)
+        Ok(rc as usize)
     }
 }
 
