@@ -1,5 +1,5 @@
 /*!
-This crate provides a Rust wrapper for the wolfCrypt library's random number
+This module provides a Rust wrapper for the wolfCrypt library's random number
 generator (RNG).
 
 It leverages the `wolfssl-sys` crate for low-level FFI bindings, encapsulating
