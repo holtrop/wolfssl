@@ -106,3 +106,25 @@ fn test_rsa_direct() {
     assert_eq!(dec_len, 256);
     assert_eq!(plain_out, plain);
 }
+
+#[test]
+fn test_rsa_ssl() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+
+    let key_path = "../../../certs/client-key.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
+    let msg: &[u8] = b"This is the string to be signed!";
+    let mut signature: [u8; 512] = [0; 512];
+    let sig_len = rsa.ssl_sign(msg, &mut signature, &mut rng).expect("Error with ssl_sign()");
+    assert!(sig_len > 0 && sig_len <= 512);
+
+    let key_path = "../../../certs/client-keyPub.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_public_from_der(&der).expect("Error with new_public_from_der()");
+    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+    let signature = &signature[0..sig_len];
+    let mut verify_out: [u8; 512] = [0; 512];
+    let verify_out_size = rsa.ssl_verify(signature, &mut verify_out).expect("Error with ssl_verify()");
+    assert!(verify_out_size > 0 && verify_out_size <= 512);
+}
