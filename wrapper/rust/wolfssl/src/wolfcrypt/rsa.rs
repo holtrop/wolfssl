@@ -48,6 +48,11 @@ impl RSA {
     pub const MGF1SHA512_224 : i32 = ws::WC_MGF1SHA512_224 as i32;
     pub const MGF1SHA512_256 : i32 = ws::WC_MGF1SHA512_256 as i32;
 
+    pub const PUBLIC_ENCRYPT : i32 = ws::RSA_PUBLIC_ENCRYPT;
+    pub const PUBLIC_DECRYPT : i32 = ws::RSA_PUBLIC_DECRYPT;
+    pub const PRIVATE_ENCRYPT : i32 = ws::RSA_PRIVATE_ENCRYPT;
+    pub const PRIVATE_DECRYPT : i32 = ws::RSA_PRIVATE_DECRYPT;
+
     /// Create a new uninitialized RSA instance.
     ///
     /// This instance will not be holding a valid key.
@@ -294,7 +299,7 @@ impl RSA {
             ws::wc_RsaDirect(din_ptr, din_size, dout_ptr, &mut dout_size,
                 &mut self.wc_rsakey, typ, &mut rng.wc_rng)
         };
-        if rc != 0 {
+        if rc < 0 {
             return Err(rc);
         }
         Ok(dout_size as usize)

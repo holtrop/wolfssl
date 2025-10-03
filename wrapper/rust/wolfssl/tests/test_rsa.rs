@@ -87,3 +87,22 @@ fn test_rsa_pss() {
     let mut verify_out: [u8; 512] = [0; 512];
     rsa.pss_verify_check(signature, &mut verify_out, msg, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify_check()");
 }
+
+#[test]
+fn test_rsa_direct() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+
+    let key_path = "../../../certs/client-key.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
+    let msg = b"A rsa_direct() test input string";
+    let mut plain = [0u8; 256];
+    plain[..msg.len()].copy_from_slice(msg);
+    let mut enc = [0u8; 256];
+    let enc_len = rsa.rsa_direct(&plain, &mut enc, RSA::PRIVATE_ENCRYPT, &mut rng).expect("Error with rsa_direct()");
+    assert_eq!(enc_len, 256);
+    let mut plain_out = [0u8; 256];
+    let dec_len = rsa.rsa_direct(&enc, &mut plain_out, RSA::PUBLIC_DECRYPT, &mut rng).expect("Error with rsa_direct()");
+    assert_eq!(dec_len, 256);
+    assert_eq!(plain_out, plain);
+}
