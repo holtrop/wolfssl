@@ -238,10 +238,10 @@ impl RSA {
         Ok(rc as usize)
     }
 
-    pub fn pss_check_padding(&mut self, din: &[u8], sig: &mut [u8], hash_algo: u32) -> Result<(), i32> {
+    pub fn pss_check_padding(&mut self, din: &[u8], sig: &[u8], hash_algo: u32) -> Result<(), i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
-        let sig_ptr = sig.as_ptr() as *mut u8;
+        let sig_ptr = sig.as_ptr() as *const u8;
         let sig_size = sig.len() as u32;
         let rc = unsafe {
             ws::wc_RsaPSS_CheckPadding(din_ptr, din_size, sig_ptr, sig_size,

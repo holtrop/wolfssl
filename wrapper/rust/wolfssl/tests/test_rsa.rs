@@ -66,21 +66,24 @@ fn test_rsa_encrypt_decrypt() {
 fn test_rsa_pss() {
     let mut rng = RNG::new().expect("Error creating RNG");
 
-    let key_path = "../../../certs/client-keyPub.der";
+    let key_path = "../../../certs/client-key.der";
     let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
-    let mut rsa = RSA::new_public_from_der(&der).expect("Error with new_public_from_der()");
-    // TODO: can remove this next line?
-    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
     let msg: &[u8] = b"This is the string to be signed!";
     let mut signature: [u8; 512] = [0; 512];
     let sig_len = rsa.pss_sign(msg, &mut signature, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256, &mut rng).expect("Error with pss_sign()");
     assert!(sig_len > 0 && sig_len <= 512);
 
-//    let key_path = "../../../certs/client-key.der";
-//    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
-//    let mut rsa = RSA::new_from_der(&der).expect("Error with new_from_der()");
-//    rsa.set_rng(&mut rng).expect("Error with set_rng()");
-//    let signature = &signature[0..sig_len];
-//    let mut verify_out: [u8; 512] = [0; 512];
-//    rsa.pss_verify(signature, &mut verify_out, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify()");
+    let key_path = "../../../certs/client-keyPub.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut rsa = RSA::new_public_from_der(&der).expect("Error with new_public_from_der()");
+    rsa.set_rng(&mut rng).expect("Error with set_rng()");
+    let signature = &signature[0..sig_len];
+    let mut verify_out: [u8; 512] = [0; 512];
+    let verify_out_size = rsa.pss_verify(signature, &mut verify_out, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify()");
+    let verify_out = &verify_out[0..verify_out_size];
+    rsa.pss_check_padding(msg, verify_out, RSA::HASH_TYPE_SHA256).expect("Error with pss_check_padding()");
+
+    let mut verify_out: [u8; 512] = [0; 512];
+    rsa.pss_verify_check(signature, &mut verify_out, msg, RSA::HASH_TYPE_SHA256, RSA::MGF1SHA256).expect("Error with pss_verify_check()");
 }
