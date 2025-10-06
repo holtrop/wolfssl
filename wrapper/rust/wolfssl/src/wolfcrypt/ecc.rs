@@ -175,6 +175,75 @@ impl ECC {
         Ok(rc)
     }
 
+    /// Import a public ECC key from the given buffer containing the key stored
+    /// in ANSI X9.63 format. This function handles both compressed and
+    /// uncompressed keys, as long as compressed keys are enabled at compile
+    /// time with the HAVE_COMP_KEY build option.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Buffer containing the ECC key encoded in ANSI X9.63 format.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_x963(din: &[u8]) -> Result<ECC, i32> {
+        let din_ptr = din.as_ptr() as *const u8;
+        let din_size = din.len() as u32;
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_import_x963(din_ptr, din_size, &mut wc_ecc_key)
+        };
+        if rc != 0 {
+            unsafe { ws::wc_ecc_free(&mut wc_ecc_key); }
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import a public ECC key from the given buffer containing the key stored
+    /// in ANSI X9.63 format. This function handles both compressed and
+    /// uncompressed keys, as long as compressed keys are enabled at compile
+    /// time with the HAVE_COMP_KEY build option.
+    ///
+    /// This function allows specifying the ECC curve ID to use.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Buffer containing the ECC key encoded in ANSI X9.63 format.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_x963_ex(din: &[u8], curve_id: i32) -> Result<ECC, i32> {
+        let din_ptr = din.as_ptr() as *const u8;
+        let din_size = din.len() as u32;
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_import_x963_ex(din_ptr, din_size, &mut wc_ecc_key, curve_id)
+        };
+        if rc != 0 {
+            unsafe { ws::wc_ecc_free(&mut wc_ecc_key); }
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
     /// Perform basic sanity checks on the ECC key.
     ///
     /// # Returns
@@ -199,6 +268,16 @@ impl ECC {
         Ok(())
     }
 
+    /// Export public key in ANSI X9.63 format.
+    ///
+    /// # Parameters
+    ///
+    /// * `dout`: Buffer to contain the output.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
     pub fn export_x963(&mut self, dout: &mut [u8]) -> Result<usize, i32> {
         let dout_ptr = dout.as_ptr() as *mut u8;
         let mut out_len: u32 = dout.len() as u32;
@@ -211,6 +290,16 @@ impl ECC {
         Ok(out_len as usize)
     }
 
+    /// Export public key in ANSI X9.63 compressed format.
+    ///
+    /// # Parameters
+    ///
+    /// * `dout`: Buffer to contain the output.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
     pub fn export_x963_compressed(&mut self, dout: &mut [u8]) -> Result<usize, i32> {
         let dout_ptr = dout.as_ptr() as *mut u8;
         let mut out_len: u32 = dout.len() as u32;
