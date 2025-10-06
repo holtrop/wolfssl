@@ -4083,7 +4083,9 @@ int wc_ecc_mulmod(const mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
 /**
  * Allocate a new ECC point (if one not provided)
  * use a heap hint when creating new ecc_point
- * return an allocated point on success or NULL on failure
+ * @return 0 on success
+ * @return BAD_FUNC_ARG for invalid arguments
+ * @return MEMORY_E on failure to allocate memory
 */
 static int wc_ecc_new_point_ex(ecc_point** point, void* heap)
 {
