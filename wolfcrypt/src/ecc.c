@@ -11813,15 +11813,14 @@ static int wc_ecc_import_raw_private(ecc_key* key, const char* qx,
    qy        y component of the public key, as ASCII hex string
    d         private key, as ASCII hex string, optional if importing public
              key only
-   dp        Custom ecc_set_type
-   return    MP_OKAY on success
+   curve_id  The id of the curve.
+   @return    MP_OKAY on success
 */
 int wc_ecc_import_raw_ex(ecc_key* key, const char* qx, const char* qy,
                    const char* d, int curve_id)
 {
     return wc_ecc_import_raw_private(key, qx, qy, d, curve_id,
         WC_TYPE_HEX_STR);
-
 }
 
 /* Import x, y and optional private (d) as unsigned binary */

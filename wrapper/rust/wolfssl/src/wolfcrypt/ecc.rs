@@ -14,6 +14,72 @@ use wolfssl_sys as ws;
 use std::mem::{MaybeUninit};
 use crate::wolfcrypt::random::RNG;
 
+/// Rust wrapper for wolfSSL `ecc_point` object.
+pub struct ECCPoint {
+    wc_ecc_point: ws::ecc_point,
+}
+
+impl ECCPoint {
+    /// Import an ECCPoint from a DER-formatted buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: DER-formatted buffer.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn import_der(din: &[u8], curve_id: i32) -> Result<Self, i32> {
+        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
+        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let din_size = din.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_import_point_der(din.as_ptr(), din_size, curve_id,
+                &mut wc_ecc_point)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let eccpoint = ECCPoint { wc_ecc_point };
+        Ok(eccpoint)
+    }
+
+    /// Import an ECCPoint from a DER-formatted buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: DER-formatted buffer.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    /// * `short_key_size`: if shortKeySize != 0 then key size is always
+    ///   (din.len() - 1) / 2.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32) -> Result<Self, i32> {
+        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
+        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let din_size = din.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_import_point_der_ex(din.as_ptr(), din_size, curve_id,
+                &mut wc_ecc_point, short_key_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let eccpoint = ECCPoint { wc_ecc_point };
+        Ok(eccpoint)
+    }
+
+    /// Zeroize the ECCPoint.
+    pub fn forcezero(&mut self) {
+        unsafe { ws::wc_ecc_forcezero_point(&mut self.wc_ecc_point) };
+    }
+}
+
 /// The `ECC` struct manages the lifecycle of a wolfSSL `ecc_key` object.
 ///
 /// It ensures proper initialization and deallocation.
@@ -175,6 +241,173 @@ impl ECC {
         Ok(rc)
     }
 
+    /// Import a public/private ECC key pair from a buffer containing the raw
+    /// private key and a second buffer containing the ANSI X9.63 formatted
+    /// public key. This function handles both compressed and uncompressed
+    /// keys as long as wolfSSL is built with the HAVE_COMP_KEY build option
+    /// enabled.
+    ///
+    /// # Parameters
+    ///
+    /// * `priv_buf`: Buffer containing the raw private key.
+    /// * `pub_buf`: Buffer containing the ANSI X9.63 formatted public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_private_key(priv_buf: &[u8], pub_buf: &[u8]) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let priv_size = priv_buf.len() as u32;
+        let pub_size = pub_buf.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_import_private_key(priv_buf.as_ptr(), priv_size,
+                pub_buf.as_ptr(), pub_size, &mut wc_ecc_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import a public/private ECC key pair from a buffer containing the raw
+    /// private key and a second buffer containing the ANSI X9.63 formatted
+    /// public key. This function handles both compressed and uncompressed
+    /// keys as long as wolfSSL is built with the HAVE_COMP_KEY build option
+    /// enabled. This function allows the curve ID to be explicitly specified.
+    ///
+    /// # Parameters
+    ///
+    /// * `priv_buf`: Buffer containing the raw private key.
+    /// * `pub_buf`: Buffer containing the ANSI X9.63 formatted public key.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_private_key_ex(priv_buf: &[u8], pub_buf: &[u8], curve_id: i32) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let priv_size = priv_buf.len() as u32;
+        let pub_size = pub_buf.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_import_private_key_ex(priv_buf.as_ptr(), priv_size,
+                pub_buf.as_ptr(), pub_size, &mut wc_ecc_key, curve_id)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import raw ECC key from components in hexadecimal ASCII string format
+    /// with curve name specified.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: X component of public key as null terminated ASCII hex string.
+    /// * `qy`: Y component of public key as null terminated ASCII hex string.
+    /// * `d`: Private key as null terminated ASCII hex string.
+    /// * `curve_name`: Null terminated ASCII string containing the curve name.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_raw(qx: &[i8], qy: &[i8], d: &[i8], curve_name: &[i8]) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_import_raw(&mut wc_ecc_key, qx.as_ptr(), qy.as_ptr(),
+                d.as_ptr(), curve_name.as_ptr())
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import raw ECC key from components in hexadecimal ASCII string format
+    /// with curve ID specified.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: X component of public key as null terminated ASCII hex string.
+    /// * `qy`: Y component of public key as null terminated ASCII hex string.
+    /// * `d`: Private key as null terminated ASCII hex string.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_raw_ex(qx: &[i8], qy: &[i8], d: &[i8], curve_id: i32) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_import_raw_ex(&mut wc_ecc_key, qx.as_ptr(), qy.as_ptr(),
+                d.as_ptr(), curve_id)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import raw ECC key from components in binary unsigned integer format
+    /// with curve ID specified.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: X component of public key in binary unsigned integer format.
+    /// * `qy`: Y component of public key in binary unsigned integer format.
+    /// * `d`: Private key in binary unsigned integer format.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_unsigned(qx: &[u8], qy: &[u8], d: &[u8], curve_id: i32) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_import_unsigned(&mut wc_ecc_key, qx.as_ptr(), qy.as_ptr(),
+                d.as_ptr(), curve_id)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
     /// Import a public ECC key from the given buffer containing the key stored
     /// in ANSI X9.63 format. This function handles both compressed and
     /// uncompressed keys, as long as compressed keys are enabled at compile
@@ -268,6 +501,131 @@ impl ECC {
         Ok(())
     }
 
+    /// Export ECC key components in binary unsigned integer format.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: Buffer in which to store public X component.
+    /// * `qx_len`: Output parameter storing number of bytes written to `qx`.
+    /// * `qy`: Buffer in which to store public Y component.
+    /// * `qy_len`: Output parameter storing number of bytes written to `qy`.
+    /// * `d`: Buffer in which to store private component.
+    /// * `d_len`: Output parameter storing number of bytes written to `d`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export(&mut self, qx: &mut [u8], qx_len: &mut u32,
+            qy: &mut [u8], qy_len: &mut u32, d: &mut [u8], d_len: &mut u32) -> Result<(), i32> {
+        *qx_len = qx.len() as u32;
+        *qy_len = qy.len() as u32;
+        *d_len = d.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_export_private_raw(&mut self.wc_ecc_key,
+                qx.as_mut_ptr(), qx_len,
+                qy.as_mut_ptr(), qy_len,
+                d.as_mut_ptr(), d_len)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Export ECC key components as either ASCII hexadecimal strings or
+    /// in binary unsigned integer format.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: Buffer in which to store public X component.
+    /// * `qx_len`: Output parameter storing number of bytes written to `qx`.
+    /// * `qy`: Buffer in which to store public Y component.
+    /// * `qy_len`: Output parameter storing number of bytes written to `qy`.
+    /// * `d`: Buffer in which to store private component.
+    /// * `d_len`: Output parameter storing number of bytes written to `d`.
+    /// * `hex`: true to output in ASCII hexadecimal string, false to output
+    ///   as binary data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export_ex(&mut self, qx: &mut [u8], qx_len: &mut u32,
+            qy: &mut [u8], qy_len: &mut u32, d: &mut [u8], d_len: &mut u32,
+            hex: bool) -> Result<(), i32> {
+        *qx_len = qx.len() as u32;
+        *qy_len = qy.len() as u32;
+        *d_len = d.len() as u32;
+        let enc_type =
+            if hex {
+                ws::WC_TYPE_HEX_STR as i32
+            } else {
+                ws::WC_TYPE_UNSIGNED_BIN as i32
+            };
+        let rc = unsafe {
+            ws::wc_ecc_export_ex(&mut self.wc_ecc_key,
+                qx.as_mut_ptr(), qx_len,
+                qy.as_mut_ptr(), qy_len,
+                d.as_mut_ptr(), d_len,
+                enc_type)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Export private component from ECC key in binary unsigned integer form.
+    ///
+    /// # Parameters
+    ///
+    /// * `d`: Buffer in which to store private component.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to `d`
+    /// or Err(e) containing the wolfSSL library error code value.
+    pub fn export_private(&mut self, d: &mut [u8]) -> Result<usize, i32> {
+        let mut d_size = d.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_export_private_only(&mut self.wc_ecc_key,
+                d.as_mut_ptr(), &mut d_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(d_size as usize)
+    }
+
+    /// Export public ECC key components in binary unsigned integer format.
+    ///
+    /// # Parameters
+    ///
+    /// * `qx`: Buffer in which to store public X component.
+    /// * `qx_len`: Output parameter storing number of bytes written to `qx`.
+    /// * `qy`: Buffer in which to store public Y component.
+    /// * `qy_len`: Output parameter storing number of bytes written to `qy`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export_public(&mut self, qx: &mut [u8], qx_len: &mut u32,
+            qy: &mut [u8], qy_len: &mut u32) -> Result<(), i32> {
+        *qx_len = qx.len() as u32;
+        *qy_len = qy.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_export_public_raw(&mut self.wc_ecc_key,
+                qx.as_mut_ptr(), qx_len,
+                qy.as_mut_ptr(), qy_len)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
     /// Export public key in ANSI X9.63 format.
     ///
     /// # Parameters
@@ -335,6 +693,105 @@ impl ECC {
             return Err(rc);
         }
         Ok(())
+    }
+
+    /// Compute the ECDH shared secret using this key's private component
+    /// and the peer public key.
+    ///
+    /// # Parameters
+    ///
+    /// * `peer`: `ECC` public key.
+    /// * `dout`: Buffer in which to store the computed secret value.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn shared_secret(&mut self, peer_key: &mut ECC, dout: &mut [u8]) -> Result<usize, i32> {
+        let mut out_len = dout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_shared_secret(&mut self.wc_ecc_key,
+                &mut peer_key.wc_ecc_key, dout.as_mut_ptr(), &mut out_len)
+        };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(out_len as usize)
+    }
+
+    /// Compute the ECDH shared secret using this key's private component
+    /// and the peer public point.
+    ///
+    /// # Parameters
+    ///
+    /// * `peer`: `ECCPoint` struct holding the public components of the peer
+    ///   ECC key.
+    /// * `dout`: Buffer in which to store the computed secret value.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn shared_secret_ex(&mut self, peer: &mut ECCPoint, dout: &mut [u8]) -> Result<usize, i32> {
+        let mut out_len = dout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_shared_secret_ex(&mut self.wc_ecc_key,
+                &mut peer.wc_ecc_point, dout.as_mut_ptr(), &mut out_len)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(out_len as usize)
+    }
+
+    /// Sign a message digest using the ECC key.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Message digest to sign.
+    /// * `dout`: Buffer in which to store the signature.
+    /// * `rng`: RNG struct to use for random number generation during signing.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn sign_hash(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<usize, i32> {
+        let din_size = din.len() as u32;
+        let mut dout_size = dout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_sign_hash(din.as_ptr(), din_size, dout.as_mut_ptr(),
+                &mut dout_size, &mut rng.wc_rng, &mut self.wc_ecc_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dout_size as usize)
+    }
+
+    /// Verify the ECC signature of a hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `sig`: ECC signature.
+    /// * `hash`: Message digest.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing a flag for whether the signature is
+    /// valid or Err(e) containing the wolfSSL library error code value.
+    pub fn verify_hash(&mut self, sig: &[u8], hash: &[u8]) -> Result<bool, i32> {
+        let mut res: i32 = 0;
+        let sig_len = sig.len() as u32;
+        let hash_len = hash.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_verify_hash(sig.as_ptr(), sig_len,
+                hash.as_ptr(), hash_len, &mut res, &mut self.wc_ecc_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res != 0)
     }
 }
 
