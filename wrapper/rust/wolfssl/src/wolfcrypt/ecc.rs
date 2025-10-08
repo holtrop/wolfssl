@@ -310,6 +310,64 @@ impl ECC {
         Ok(rc)
     }
 
+    /// Import public and private ECC key pair from DER input buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `der`: DER buffer containing the ECC public and private key pair.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_der(der: &[u8]) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let mut idx = 0u32;
+        let der_size = der.len() as u32;
+        let rc = unsafe {
+            ws::wc_EccPrivateKeyDecode(der.as_ptr(), &mut idx, &mut wc_ecc_key, der_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Import public ECC key from DER input buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `der`: DER buffer containing the ECC public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn import_public_der(der: &[u8]) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let mut idx = 0u32;
+        let der_size = der.len() as u32;
+        let rc = unsafe {
+            ws::wc_EccPublicKeyDecode(der.as_ptr(), &mut idx, &mut wc_ecc_key, der_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
     /// Import a public/private ECC key pair from a buffer containing the raw
     /// private key and a second buffer containing the ANSI X9.63 formatted
     /// public key. This function handles both compressed and uncompressed
