@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2025 wolfSSL Inc.
+ *
+ * This file is part of wolfSSL.
+ *
+ * wolfSSL is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * wolfSSL is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ */
+
 /*!
 This module provides a Rust wrapper for the wolfCrypt library's ECC
 functionality.
@@ -12,6 +32,7 @@ wolfSSL `ecc_key` object. It ensures proper initialization and deallocation.
 use wolfssl_sys as ws;
 
 use std::mem::{MaybeUninit};
+use std::ptr::null_mut;
 use crate::wolfcrypt::random::RNG;
 
 /// Rust wrapper for wolfSSL `ecc_point` object.
@@ -128,6 +149,10 @@ impl ECC {
     pub const CURVE_CUSTOM: i32 = ws::ecc_curve_ids_ECC_CURVE_CUSTOM;
     pub const CURVE_MAX: i32 = ws::ecc_curve_ids_ECC_CURVE_MAX;
 
+    pub const FLAG_NONE: i32 = ws::WC_ECC_FLAG_NONE as i32;
+    pub const FLAG_COFACTOR: i32 = ws::WC_ECC_FLAG_COFACTOR as i32;
+    pub const FLAG_DEC_SIGN: i32 = ws::WC_ECC_FLAG_DEC_SIGN as i32;
+
     /// Generate a new ECC key with the given size.
     ///
     /// # Parameters
@@ -190,7 +215,7 @@ impl ECC {
     /// let mut rng = RNG::new().expect("Failed to create RNG");
     /// let curve_id = ECC::SECP256R1;
     /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
-    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate_ex()");
     /// ecc.check().expect("Error with check()");
     /// ```
     pub fn generate_ex(size: i32, rng: &mut RNG, curve_id: i32) -> Result<Self, i32> {
@@ -202,6 +227,50 @@ impl ECC {
         let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
         let rc = unsafe {
             ws::wc_ecc_make_key_ex(&mut rng.wc_rng, size, &mut wc_ecc_key, curve_id)
+        };
+        if rc != 0 {
+            unsafe { ws::wc_ecc_free(&mut wc_ecc_key); }
+            return Err(rc);
+        }
+        let ecc = ECC { wc_ecc_key };
+        Ok(ecc)
+    }
+
+    /// Generate a new ECC key with the given size, curve, and flags.
+    ///
+    /// # Parameters
+    ///
+    /// * `size`: Desired key length in bytes.
+    /// * `rng`: Reference to a `RNG` struct to use for random number
+    ///   generation while making the key.
+    /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    /// * `flags`: Flags for making the key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex2(curve_size, &mut rng, curve_id, ECC::FLAG_COFACTOR).expect("Error with generate_ex2()");
+    /// ecc.check().expect("Error with check()");
+    /// ```
+    pub fn generate_ex2(size: i32, rng: &mut RNG, curve_id: i32, flags: i32) -> Result<Self, i32> {
+        let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
+        let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_make_key_ex2(&mut rng.wc_rng, size, &mut wc_ecc_key, curve_id, flags)
         };
         if rc != 0 {
             unsafe { ws::wc_ecc_free(&mut wc_ecc_key); }
@@ -477,6 +546,83 @@ impl ECC {
         Ok(ecc)
     }
 
+    /// Convert the R and S portions (as hexadecimal ASCII strings) of an ECC
+    /// signature into a DER-encoded ECDSA signature.
+    ///
+    /// # Parameters
+    ///
+    /// * `r`: R component of ECC signature as a null-terminated hexadecimal
+    ///   ASCII string.
+    /// * `s`: S component of ECC signature as a null-terminated hexadecimal
+    ///   ASCII string.
+    /// * `dout`: Buffer in which to store the output ECDSA signature.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn rs_hex_to_sig(r: &[i8], s: &[i8], dout: &mut [u8]) -> Result<usize, i32> {
+        let mut dout_size = dout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_rs_to_sig(r.as_ptr(), s.as_ptr(), dout.as_mut_ptr(),
+                &mut dout_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dout_size as usize)
+    }
+
+    /// Convert the R and S portions (as binary unsigned integers) of an ECC
+    /// signature into a DER-encoded ECDSA signature.
+    ///
+    /// # Parameters
+    ///
+    /// * `r`: R component of ECC signature as a binary unsigned integer.
+    /// * `s`: S component of ECC signature as a binary unsigned integer.
+    /// * `dout`: Buffer in which to store the output ECDSA signature.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn rs_bin_to_sig(r: &[u8], s: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
+        let r_size = r.len() as u32;
+        let s_size = s.len() as u32;
+        let mut dout_size = dout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_rs_raw_to_sig(r.as_ptr(), r_size, s.as_ptr(), s_size,
+                dout.as_mut_ptr(), &mut dout_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dout_size as usize)
+    }
+
+    /// Convert ECDSA signature to R and S components.
+    ///
+    /// # Parameters
+    ///
+    /// * `sig`: ECDSA signature.
+    /// * `r`: Output buffer for R component.
+    /// * `r_size`: Number of bytes written to `r` buffer.
+    /// * `s`: Output buffer for S component.
+    /// * `s_size`: Number of bytes written to `s` buffer.
+    pub fn sig_to_rs(sig: &[u8], r: &mut [u8], r_size: &mut u32, s: &mut [u8], s_size: &mut u32) -> Result<(), i32> {
+        let sig_len = sig.len() as u32;
+        *r_size = r.len() as u32;
+        *s_size = s.len() as u32;
+        let rc = unsafe {
+            ws::wc_ecc_sig_to_rs(sig.as_ptr(), sig_len,
+                r.as_mut_ptr(), r_size, s.as_mut_ptr(), s_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
     /// Perform basic sanity checks on the ECC key.
     ///
     /// # Returns
@@ -668,6 +814,59 @@ impl ECC {
             return Err(rc);
         }
         Ok(out_len as usize)
+    }
+
+    /// Compute the public component from this key private component.
+    ///
+    /// # Parameters
+    ///
+    /// * `rng`: RNG struct used to blind the private key value used in the
+    ///   computation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn make_pub(&mut self, rng: Option<&mut RNG>) -> Result<(), i32> {
+        let rng_ptr = match rng {
+            Some(rng) => &mut rng.wc_rng,
+            None => null_mut(),
+        };
+        let rc = unsafe {
+            ws::wc_ecc_make_pub_ex(&mut self.wc_ecc_key, null_mut(), rng_ptr)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Compute the public component from this key private component.
+    ///
+    /// # Parameters
+    ///
+    /// * `rng`: RNG struct used to blind the private key value used in the
+    ///   computation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(ECCPoint) containing the public component ECCPoint
+    /// or Err(e) containing the wolfSSL library error code value.
+    pub fn make_pub_to_point(&mut self, rng: Option<&mut RNG>) -> Result<ECCPoint, i32> {
+        let rng_ptr = match rng {
+            Some(rng) => &mut rng.wc_rng,
+            None => null_mut(),
+        };
+        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
+        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let rc = unsafe {
+            ws::wc_ecc_make_pub_ex(&mut self.wc_ecc_key, &mut wc_ecc_point, rng_ptr)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        let ecc_point = ECCPoint { wc_ecc_point };
+        Ok(ecc_point)
     }
 
     /// Associates a `RNG` instance with this `ECC` instance.
