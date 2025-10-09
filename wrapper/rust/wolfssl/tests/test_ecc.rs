@@ -164,3 +164,12 @@ fn test_ecc_point() {
     ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
     ecc_point.forcezero();
 }
+
+#[test]
+fn test_ecc_import() {
+    let qx = b"7a4e287890a1a47ad3457e52f2f76a83ce46cbc947616d0cbaa82323818a793d\0";
+    let qy = b"eec4084f5b29ebf29c44cce3b3059610922f8b30ea6e8811742ac7238fe87308\0";
+    let d  = b"8c14b793cb19137e323a6d2e2a870bca2e7a493ec1153b3a95feb8a4873f8d08\0";
+    ECC::import_raw(qx, qy, d, b"SECP256R1\0").expect("Error with import_raw()");
+    ECC::import_raw_ex(qx, qy, d, ECC::SECP256R1).expect("Error with import_raw_ex()");
+}

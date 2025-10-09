@@ -532,16 +532,20 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
-    pub fn import_raw(qx: &[i8], qy: &[i8], d: &[i8], curve_name: &[i8]) -> Result<Self, i32> {
+    pub fn import_raw(qx: &[u8], qy: &[u8], d: &[u8], curve_name: &[u8]) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
         if rc != 0 {
             return Err(rc);
         }
         let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let qx_ptr = qx.as_ptr() as *const i8;
+        let qy_ptr = qy.as_ptr() as *const i8;
+        let d_ptr = d.as_ptr() as *const i8;
+        let curve_name_ptr = curve_name.as_ptr() as *const i8;
         let rc = unsafe {
-            ws::wc_ecc_import_raw(&mut wc_ecc_key, qx.as_ptr(), qy.as_ptr(),
-                d.as_ptr(), curve_name.as_ptr())
+            ws::wc_ecc_import_raw(&mut wc_ecc_key, qx_ptr, qy_ptr, d_ptr,
+                curve_name_ptr)
         };
         if rc != 0 {
             return Err(rc);
@@ -564,16 +568,19 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
-    pub fn import_raw_ex(qx: &[i8], qy: &[i8], d: &[i8], curve_id: i32) -> Result<Self, i32> {
+    pub fn import_raw_ex(qx: &[u8], qy: &[u8], d: &[u8], curve_id: i32) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
         if rc != 0 {
             return Err(rc);
         }
         let mut wc_ecc_key = unsafe { wc_ecc_key.assume_init() };
+        let qx_ptr = qx.as_ptr() as *const i8;
+        let qy_ptr = qy.as_ptr() as *const i8;
+        let d_ptr = d.as_ptr() as *const i8;
         let rc = unsafe {
-            ws::wc_ecc_import_raw_ex(&mut wc_ecc_key, qx.as_ptr(), qy.as_ptr(),
-                d.as_ptr(), curve_id)
+            ws::wc_ecc_import_raw_ex(&mut wc_ecc_key, qx_ptr, qy_ptr, d_ptr,
+                curve_id)
         };
         if rc != 0 {
             return Err(rc);
@@ -698,10 +705,12 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
-    pub fn rs_hex_to_sig(r: &[i8], s: &[i8], dout: &mut [u8]) -> Result<usize, i32> {
+    pub fn rs_hex_to_sig(r: &[u8], s: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
+        let r_ptr = r.as_ptr() as *const i8;
+        let s_ptr = s.as_ptr() as *const i8;
         let rc = unsafe {
-            ws::wc_ecc_rs_to_sig(r.as_ptr(), s.as_ptr(), dout.as_mut_ptr(),
+            ws::wc_ecc_rs_to_sig(r_ptr, s_ptr, dout.as_mut_ptr(),
                 &mut dout_size)
         };
         if rc != 0 {
