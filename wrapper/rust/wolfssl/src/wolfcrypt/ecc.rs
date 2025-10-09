@@ -110,7 +110,7 @@ impl ECCPoint {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
-    pub fn export_der(&mut self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
+    pub fn export_der(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_export_point_der(curve_id, self.wc_ecc_point,
@@ -133,7 +133,7 @@ impl ECCPoint {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
-    pub fn export_der_compressed(&mut self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
+    pub fn export_der_compressed(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_export_point_der_ex(curve_id, self.wc_ecc_point,
@@ -146,7 +146,7 @@ impl ECCPoint {
     }
 
     /// Zeroize the ECCPoint.
-    pub fn forcezero(&mut self) {
+    pub fn forcezero(&self) {
         unsafe { ws::wc_ecc_forcezero_point(self.wc_ecc_point) };
     }
 }
