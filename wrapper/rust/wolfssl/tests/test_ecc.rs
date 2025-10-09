@@ -17,6 +17,12 @@ fn test_ecc_generate_ex() {
     assert_eq!(curve_size, 32);
     let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
     ecc.check().expect("Error with check()");
+
+    let mut x963 = [0u8; 128];
+    let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    let x963 = &x963[0..x963_size];
+    let mut ecc = ECC::import_x963_ex(x963, ECC::SECP256R1).expect("Error with import_x963_ex");
+    ecc.check().expect("Error with check()");
 }
 
 #[test]
@@ -39,6 +45,13 @@ fn test_ecc_import_export_sign_verify() {
 
     let mut x963 = [0u8; 128];
     let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    let x963 = &x963[0..x963_size];
+    let mut ecc = ECC::import_x963(x963).expect("Error with import_x963");
+    let valid = ecc.verify_hash(&signature, &hash).expect("Error with verify_hash()");
+    assert_eq!(valid, true);
+
+    let mut x963 = [0u8; 128];
+    let x963_size = ecc.export_x963_compressed(&mut x963).expect("Error with export_x963_compressed()");
     let x963 = &x963[0..x963_size];
     let mut ecc = ECC::import_x963(x963).expect("Error with import_x963");
     let valid = ecc.verify_hash(&signature, &hash).expect("Error with verify_hash()");
@@ -77,3 +90,76 @@ fn test_ecc_shared_secret() {
     let ss1 = &ss1[0..ss1_size];
     assert_eq!(*ss0, *ss1);
 }
+
+#[test]
+fn test_ecc_export() {
+    let mut rng = RNG::new().expect("Failed to create RNG");
+    let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    let mut qx = [0u8; 32];
+    let mut qx_len = 0u32;
+    let mut qy = [0u8; 32];
+    let mut qy_len = 0u32;
+    let mut d = [0u8; 32];
+    let mut d_len = 0u32;
+    ecc.export(&mut qx, &mut qx_len, &mut qy, &mut qy_len, &mut d, &mut d_len).expect("Error with export()");
+}
+
+#[test]
+fn test_ecc_export_ex() {
+    let mut rng = RNG::new().expect("Failed to create RNG");
+    let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    let mut qx = [0u8; 32];
+    let mut qx_len = 0u32;
+    let mut qy = [0u8; 32];
+    let mut qy_len = 0u32;
+    let mut d = [0u8; 32];
+    let mut d_len = 0u32;
+    ecc.export_ex(&mut qx, &mut qx_len, &mut qy, &mut qy_len, &mut d, &mut d_len, false).expect("Error with export_ex()");
+}
+
+#[test]
+fn test_ecc_export_private() {
+    let mut rng = RNG::new().expect("Failed to create RNG");
+    let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    let mut d = [0u8; 32];
+    let d_size = ecc.export_private(&mut d).expect("Error with export_private()");
+    assert_eq!(d_size, 32);
+}
+
+#[test]
+fn test_ecc_export_public() {
+    let mut rng = RNG::new().expect("Failed to create RNG");
+    let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    let mut qx = [0u8; 32];
+    let mut qx_len = 0u32;
+    let mut qy = [0u8; 32];
+    let mut qy_len = 0u32;
+    ecc.export_public(&mut qx, &mut qx_len, &mut qy, &mut qy_len).expect("Error with export_public()");
+}
+
+#[test]
+fn test_ecc_make_pub() {
+    let mut rng = RNG::new().expect("Failed to create RNG");
+    let key_path = "../../../certs/ecc-client-key.der";
+    let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    ecc.make_pub(Some(&mut rng)).expect("Error with make_pub()");
+    ecc.make_pub(None).expect("Error with make_pub()");
+    ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    ecc.make_pub_to_point(None).expect("Error with make_pub_to_point()");
+}
+
+//#[test]
+//fn test_ecc_point() {
+//    let mut rng = RNG::new().expect("Failed to create RNG");
+//    let curve_id = ECC::SECP256R1;
+//    let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+//    let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+//    let mut ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+//    let mut der = [0u8; 128];
+//    let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
+//    assert!(size > 0 && size <= der.len());
+//    ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+//    let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
+//    ECCPoint::import_der_ex(&der[0..size], curve_id, 0).expect("Error with import_der_ex()");
+//}
