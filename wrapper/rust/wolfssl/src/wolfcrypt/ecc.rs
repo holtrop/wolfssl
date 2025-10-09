@@ -31,7 +31,7 @@ wolfSSL `ecc_key` object. It ensures proper initialization and deallocation.
 
 use wolfssl_sys as ws;
 
-use std::mem::{MaybeUninit};
+use std::mem::{MaybeUninit,zeroed};
 use std::ptr::null_mut;
 use crate::wolfcrypt::random::RNG;
 
@@ -53,8 +53,7 @@ impl ECCPoint {
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
     pub fn import_der(din: &[u8], curve_id: i32) -> Result<Self, i32> {
-        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
-        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let mut wc_ecc_point: ws::ecc_point = unsafe { zeroed() };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der(din.as_ptr(), din_size, curve_id,
@@ -81,8 +80,7 @@ impl ECCPoint {
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
     pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32) -> Result<Self, i32> {
-        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
-        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let mut wc_ecc_point: ws::ecc_point = unsafe { zeroed() };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der_ex(din.as_ptr(), din_size, curve_id,
