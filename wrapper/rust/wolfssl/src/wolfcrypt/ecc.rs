@@ -86,6 +86,21 @@ impl ECCPoint {
     ///
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::{ECC,ECCPoint};
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let mut der = [0u8; 128];
+    /// let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
+    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
+    /// ```
     pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32) -> Result<Self, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
         if curve_idx < 0 {
@@ -118,6 +133,22 @@ impl ECCPoint {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::{ECC,ECCPoint};
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let mut der = [0u8; 128];
+    /// let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
+    /// assert!(size > 0 && size <= der.len());
+    /// ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+    /// ```
     pub fn export_der(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
         if curve_idx < 0 {
@@ -145,6 +176,21 @@ impl ECCPoint {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::{ECC,ECCPoint};
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let mut der = [0u8; 128];
+    /// let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
+    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
+    /// ```
     pub fn export_der_compressed(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
         if curve_idx < 0 {
@@ -162,6 +208,17 @@ impl ECCPoint {
     }
 
     /// Zeroize the ECCPoint.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// ecc_point.forcezero();
+    /// ```
     pub fn forcezero(&self) {
         unsafe { ws::wc_ecc_forcezero_point(self.wc_ecc_point) };
     }
@@ -399,6 +456,22 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::{ECC,ECCPoint};
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let mut der = [0u8; 128];
+    /// let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
+    /// assert!(size > 0 && size <= der.len());
+    /// ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+    /// ```
     pub fn import_der(der: &[u8]) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -462,6 +535,27 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &signature[0..signature_length];
+    /// let mut d = [0u8; 32];
+    /// let d_size = ecc.export_private(&mut d).expect("Error with export_private()");
+    /// let mut x963 = [0u8; 128];
+    /// let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    /// let x963 = &x963[0..x963_size];
+    /// let mut ecc2 = ECC::import_private_key(&d, x963).expect("Error with import_private_key()");
+    /// let valid = ecc2.verify_hash(&signature, &hash).expect("Error with verify_hash()");
+    /// assert_eq!(valid, true);
+    /// ```
     pub fn import_private_key(priv_buf: &[u8], pub_buf: &[u8]) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -498,6 +592,29 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate_ex()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &signature[0..signature_length];
+    /// let mut d = [0u8; 32];
+    /// let d_size = ecc.export_private(&mut d).expect("Error with export_private()");
+    /// let mut x963 = [0u8; 128];
+    /// let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    /// let x963 = &x963[0..x963_size];
+    /// let mut ecc2 = ECC::import_private_key_ex(&d, x963, curve_id).expect("Error with import_private_key_ex()");
+    /// let valid = ecc2.verify_hash(&signature, &hash).expect("Error with verify_hash()");
+    /// assert_eq!(valid, true);
+    /// ```
     pub fn import_private_key_ex(priv_buf: &[u8], pub_buf: &[u8], curve_id: i32) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -532,6 +649,17 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let qx = b"7a4e287890a1a47ad3457e52f2f76a83ce46cbc947616d0cbaa82323818a793d\0";
+    /// let qy = b"eec4084f5b29ebf29c44cce3b3059610922f8b30ea6e8811742ac7238fe87308\0";
+    /// let d  = b"8c14b793cb19137e323a6d2e2a870bca2e7a493ec1153b3a95feb8a4873f8d08\0";
+    /// ECC::import_raw(qx, qy, d, b"SECP256R1\0").expect("Error with import_raw()");
+    /// ```
     pub fn import_raw(qx: &[u8], qy: &[u8], d: &[u8], curve_name: &[u8]) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -568,6 +696,17 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let qx = b"7a4e287890a1a47ad3457e52f2f76a83ce46cbc947616d0cbaa82323818a793d\0";
+    /// let qy = b"eec4084f5b29ebf29c44cce3b3059610922f8b30ea6e8811742ac7238fe87308\0";
+    /// let d  = b"8c14b793cb19137e323a6d2e2a870bca2e7a493ec1153b3a95feb8a4873f8d08\0";
+    /// ECC::import_raw_ex(qx, qy, d, ECC::SECP256R1).expect("Error with import_raw_ex()");
+    /// ```
     pub fn import_raw_ex(qx: &[u8], qy: &[u8], d: &[u8], curve_id: i32) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -603,6 +742,25 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let mut qx = [0u8; 32];
+    /// let mut qx_len = 0u32;
+    /// let mut qy = [0u8; 32];
+    /// let mut qy_len = 0u32;
+    /// let mut d = [0u8; 32];
+    /// let mut d_len = 0u32;
+    /// ecc.export_ex(&mut qx, &mut qx_len, &mut qy, &mut qy_len, &mut d, &mut d_len, false).expect("Error with export_ex()");
+    /// let mut ecc2 = ECC::import_unsigned(&qx, &qy, &d, curve_id).expect("Error with import_unsigned()");
+    /// ```
     pub fn import_unsigned(qx: &[u8], qy: &[u8], d: &[u8], curve_id: i32) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ecc_init(wc_ecc_key.as_mut_ptr()) };
@@ -634,6 +792,19 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut x963 = [0u8; 128];
+    /// let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    /// let x963 = &x963[0..x963_size];
+    /// let _ecc2 = ECC::import_x963(x963).expect("Error with import_x963()");
+    /// ```
     pub fn import_x963(din: &[u8]) -> Result<ECC, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
@@ -670,6 +841,21 @@ impl ECC {
     ///
     /// Returns either Ok(ECC) containing the ECC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate_ex()");
+    /// let mut x963 = [0u8; 128];
+    /// let x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    /// let x963 = &x963[0..x963_size];
+    /// let _ecc2 = ECC::import_x963_ex(x963, curve_id).expect("Error with import_x963_ex()");
+    /// ```
     pub fn import_x963_ex(din: &[u8], curve_id: i32) -> Result<ECC, i32> {
         let din_ptr = din.as_ptr() as *const u8;
         let din_size = din.len() as u32;
@@ -808,6 +994,22 @@ impl ECC {
     ///
     /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut qx = [0u8; 32];
+    /// let mut qx_len = 0u32;
+    /// let mut qy = [0u8; 32];
+    /// let mut qy_len = 0u32;
+    /// let mut d = [0u8; 32];
+    /// let mut d_len = 0u32;
+    /// ecc.export(&mut qx, &mut qx_len, &mut qy, &mut qy_len, &mut d, &mut d_len).expect("Error with export()");
+    /// ```
     pub fn export(&mut self, qx: &mut [u8], qx_len: &mut u32,
             qy: &mut [u8], qy_len: &mut u32, d: &mut [u8], d_len: &mut u32) -> Result<(), i32> {
         *qx_len = qx.len() as u32;
@@ -843,6 +1045,22 @@ impl ECC {
     ///
     /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut qx = [0u8; 32];
+    /// let mut qx_len = 0u32;
+    /// let mut qy = [0u8; 32];
+    /// let mut qy_len = 0u32;
+    /// let mut d = [0u8; 32];
+    /// let mut d_len = 0u32;
+    /// ecc.export_ex(&mut qx, &mut qx_len, &mut qy, &mut qy_len, &mut d, &mut d_len, false).expect("Error with export_ex()");
+    /// ```
     pub fn export_ex(&mut self, qx: &mut [u8], qx_len: &mut u32,
             qy: &mut [u8], qy_len: &mut u32, d: &mut [u8], d_len: &mut u32,
             hex: bool) -> Result<(), i32> {
@@ -878,6 +1096,18 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to `d`
     /// or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut d = [0u8; 32];
+    /// let d_size = ecc.export_private(&mut d).expect("Error with export_private()");
+    /// assert_eq!(d_size, 32);
+    /// ```
     pub fn export_private(&mut self, d: &mut [u8]) -> Result<usize, i32> {
         let mut d_size = d.len() as u32;
         let rc = unsafe {
@@ -903,6 +1133,20 @@ impl ECC {
     ///
     /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut qx = [0u8; 32];
+    /// let mut qx_len = 0u32;
+    /// let mut qy = [0u8; 32];
+    /// let mut qy_len = 0u32;
+    /// ecc.export_public(&mut qx, &mut qx_len, &mut qy, &mut qy_len).expect("Error with export_public()");
+    /// ```
     pub fn export_public(&mut self, qx: &mut [u8], qx_len: &mut u32,
             qy: &mut [u8], qy_len: &mut u32) -> Result<(), i32> {
         *qx_len = qx.len() as u32;
@@ -928,6 +1172,17 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut x963 = [0u8; 128];
+    /// let _x963_size = ecc.export_x963(&mut x963).expect("Error with export_x963()");
+    /// ```
     pub fn export_x963(&mut self, dout: &mut [u8]) -> Result<usize, i32> {
         let dout_ptr = dout.as_ptr() as *mut u8;
         let mut out_len: u32 = dout.len() as u32;
@@ -950,6 +1205,17 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut x963 = [0u8; 128];
+    /// let _x963_size = ecc.export_x963_compressed(&mut x963).expect("Error with export_x963_compressed()");
+    /// ```
     pub fn export_x963_compressed(&mut self, dout: &mut [u8]) -> Result<usize, i32> {
         let dout_ptr = dout.as_ptr() as *mut u8;
         let mut out_len: u32 = dout.len() as u32;
@@ -1032,6 +1298,16 @@ impl ECC {
     ///
     /// Returns Ok(()) on success or Err(e) containing the wolfSSL library
     /// error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// ecc.set_rng(&mut rng).expect("Error with set_rng()");
+    /// ```
     pub fn set_rng(&mut self, rng: &mut RNG) -> Result<(), i32> {
         let rc = unsafe {
             ws::wc_ecc_set_rng(&mut self.wc_ecc_key, &mut rng.wc_rng)
@@ -1054,6 +1330,24 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc0 = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut ecc1 = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut ss0 = [0u8; 128];
+    /// let mut ss1 = [0u8; 128];
+    /// let ss0_size = ecc0.shared_secret(&mut ecc1, &mut ss0).expect("Error with shared_secret()");
+    /// let ss1_size = ecc1.shared_secret(&mut ecc0, &mut ss1).expect("Error with shared_secret()");
+    /// assert_eq!(ss0_size, ss1_size);
+    /// let ss0 = &ss0[0..ss0_size];
+    /// let ss1 = &ss1[0..ss1_size];
+    /// assert_eq!(*ss0, *ss1);
+    /// ```
     pub fn shared_secret(&mut self, peer_key: &mut ECC, dout: &mut [u8]) -> Result<usize, i32> {
         let mut out_len = dout.len() as u32;
         let rc = unsafe {
@@ -1079,6 +1373,25 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc0 = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let mut ecc1 = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let ecc1_point = ecc1.make_pub_to_point(None).expect("Error with make_pub_to_point()");
+    /// let mut ss0 = [0u8; 128];
+    /// let mut ss1 = [0u8; 128];
+    /// let ss0_size = ecc0.shared_secret_ex(&ecc1_point, &mut ss0).expect("Error with shared_secret_ex()");
+    /// let ss1_size = ecc1.shared_secret(&mut ecc0, &mut ss1).expect("Error with shared_secret()");
+    /// assert_eq!(ss0_size, ss1_size);
+    /// let ss0 = &ss0[0..ss0_size];
+    /// let ss1 = &ss1[0..ss1_size];
+    /// assert_eq!(*ss0, *ss1);
+    /// ```
     pub fn shared_secret_ex(&mut self, peer: &ECCPoint, dout: &mut [u8]) -> Result<usize, i32> {
         let mut out_len = dout.len() as u32;
         let rc = unsafe {
@@ -1103,6 +1416,21 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &mut signature[0..signature_length];
+    /// let valid = ecc.verify_hash(&signature, &hash).expect("Error with verify_hash()");
+    /// assert_eq!(valid, true);
+    /// ```
     pub fn sign_hash(&mut self, din: &[u8], dout: &mut [u8], rng: &mut RNG) -> Result<usize, i32> {
         let din_size = din.len() as u32;
         let mut dout_size = dout.len() as u32;
@@ -1127,6 +1455,21 @@ impl ECC {
     ///
     /// Returns either Ok(valid) containing a flag for whether the signature is
     /// valid or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &mut signature[0..signature_length];
+    /// let valid = ecc.verify_hash(&signature, &hash).expect("Error with verify_hash()");
+    /// assert_eq!(valid, true);
+    /// ```
     pub fn verify_hash(&mut self, sig: &[u8], hash: &[u8]) -> Result<bool, i32> {
         let mut res: i32 = 0;
         let sig_len = sig.len() as u32;
