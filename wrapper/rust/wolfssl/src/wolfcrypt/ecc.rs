@@ -1079,7 +1079,7 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
-    pub fn shared_secret_ex(&mut self, peer: &mut ECCPoint, dout: &mut [u8]) -> Result<usize, i32> {
+    pub fn shared_secret_ex(&mut self, peer: &ECCPoint, dout: &mut [u8]) -> Result<usize, i32> {
         let mut out_len = dout.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_shared_secret_ex(&mut self.wc_ecc_key,
