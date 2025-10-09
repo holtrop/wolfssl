@@ -31,13 +31,13 @@ wolfSSL `ecc_key` object. It ensures proper initialization and deallocation.
 
 use wolfssl_sys as ws;
 
-use std::mem::{MaybeUninit,zeroed};
+use std::mem::{MaybeUninit};
 use std::ptr::null_mut;
 use crate::wolfcrypt::random::RNG;
 
 /// Rust wrapper for wolfSSL `ecc_point` object.
 pub struct ECCPoint {
-    wc_ecc_point: ws::ecc_point,
+    wc_ecc_point: *mut ws::ecc_point,
 }
 
 impl ECCPoint {
@@ -53,16 +53,19 @@ impl ECCPoint {
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
     pub fn import_der(din: &[u8], curve_id: i32) -> Result<Self, i32> {
-        let mut wc_ecc_point: ws::ecc_point = unsafe { zeroed() };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        if wc_ecc_point.is_null() {
+            return Err(0);
+        }
+        let eccpoint = ECCPoint { wc_ecc_point };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der(din.as_ptr(), din_size, curve_id,
-                &mut wc_ecc_point)
+                eccpoint.wc_ecc_point)
         };
         if rc != 0 {
             return Err(rc);
         }
-        let eccpoint = ECCPoint { wc_ecc_point };
         Ok(eccpoint)
     }
 
@@ -80,16 +83,19 @@ impl ECCPoint {
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
     pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32) -> Result<Self, i32> {
-        let mut wc_ecc_point: ws::ecc_point = unsafe { zeroed() };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        if wc_ecc_point.is_null() {
+            return Err(0);
+        }
+        let eccpoint = ECCPoint { wc_ecc_point };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der_ex(din.as_ptr(), din_size, curve_id,
-                &mut wc_ecc_point, short_key_size)
+                wc_ecc_point, short_key_size)
         };
         if rc != 0 {
             return Err(rc);
         }
-        let eccpoint = ECCPoint { wc_ecc_point };
         Ok(eccpoint)
     }
 
@@ -107,7 +113,7 @@ impl ECCPoint {
     pub fn export_der(&mut self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
         let rc = unsafe {
-            ws::wc_ecc_export_point_der(curve_id, &mut self.wc_ecc_point,
+            ws::wc_ecc_export_point_der(curve_id, self.wc_ecc_point,
                 dout.as_mut_ptr(), &mut dout_size)
         };
         if rc != 0 {
@@ -130,7 +136,7 @@ impl ECCPoint {
     pub fn export_der_compressed(&mut self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
         let rc = unsafe {
-            ws::wc_ecc_export_point_der_ex(curve_id, &mut self.wc_ecc_point,
+            ws::wc_ecc_export_point_der_ex(curve_id, self.wc_ecc_point,
                 dout.as_mut_ptr(), &mut dout_size, 1)
         };
         if rc != 0 {
@@ -141,7 +147,20 @@ impl ECCPoint {
 
     /// Zeroize the ECCPoint.
     pub fn forcezero(&mut self) {
-        unsafe { ws::wc_ecc_forcezero_point(&mut self.wc_ecc_point) };
+        unsafe { ws::wc_ecc_forcezero_point(self.wc_ecc_point) };
+    }
+}
+
+impl Drop for ECCPoint {
+    /// Safely free the underlying wolfSSL ecc_point context.
+    ///
+    /// This calls the `wc_ecc_del_point()` wolfssl library function.
+    ///
+    /// The Rust Drop trait guarantees that this method is called when the
+    /// ECCPoint struct instance goes out of scope, automatically cleaning up
+    /// resources and preventing memory leaks.
+    fn drop(&mut self) {
+        unsafe { ws::wc_ecc_del_point(self.wc_ecc_point); }
     }
 }
 
@@ -959,15 +978,17 @@ impl ECC {
             Some(rng) => &mut rng.wc_rng,
             None => null_mut(),
         };
-        let wc_ecc_point: MaybeUninit<ws::ecc_point> = MaybeUninit::uninit();
-        let mut wc_ecc_point = unsafe { wc_ecc_point.assume_init() };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        if wc_ecc_point.is_null() {
+            return Err(0);
+        }
+        let ecc_point = ECCPoint { wc_ecc_point };
         let rc = unsafe {
-            ws::wc_ecc_make_pub_ex(&mut self.wc_ecc_key, &mut wc_ecc_point, rng_ptr)
+            ws::wc_ecc_make_pub_ex(&mut self.wc_ecc_key, wc_ecc_point, rng_ptr)
         };
         if rc != 0 {
             return Err(rc);
         }
-        let ecc_point = ECCPoint { wc_ecc_point };
         Ok(ecc_point)
     }
 
@@ -1037,7 +1058,7 @@ impl ECC {
         let mut out_len = dout.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_shared_secret_ex(&mut self.wc_ecc_key,
-                &mut peer.wc_ecc_point, dout.as_mut_ptr(), &mut out_len)
+                peer.wc_ecc_point, dout.as_mut_ptr(), &mut out_len)
         };
         if rc != 0 {
             return Err(rc);
