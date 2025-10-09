@@ -891,6 +891,42 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::fs;
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// fn bytes_to_asciiz_hex_string(bytes: &[u8]) -> String {
+    ///     let mut hex_string = String::with_capacity(bytes.len() * 2 + 1);
+    ///     for byte in bytes {
+    ///         hex_string.push_str(&format!("{:02X}", byte));
+    ///     }
+    ///     hex_string.push('\0');
+    ///     hex_string
+    /// }
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let key_path = "../../../certs/ecc-client-key.der";
+    /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &mut signature[0..signature_length];
+    /// let mut r = [0u8; 32];
+    /// let mut r_size = 0u32;
+    /// let mut s = [0u8; 32];
+    /// let mut s_size = 0u32;
+    /// ECC::sig_to_rs(signature, &mut r, &mut r_size, &mut s, &mut s_size).expect("Error with sig_to_rs()");
+    /// let r = &r[0..r_size as usize];
+    /// let s = &s[0..s_size as usize];
+    /// let r_hex_string = bytes_to_asciiz_hex_string(r);
+    /// let s_hex_string = bytes_to_asciiz_hex_string(s);
+    /// let mut sig_out = [0u8; 128];
+    /// let sig_out_size = ECC::rs_hex_to_sig(&r_hex_string[0..r_hex_string.len()].as_bytes(), &s_hex_string[0..s_hex_string.len()].as_bytes(), &mut sig_out).expect("Error with rs_hex_to_sig()");
+    /// assert_eq!(*signature, *&sig_out[0..sig_out_size]);
+    /// ```
     pub fn rs_hex_to_sig(r: &[u8], s: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
         let mut dout_size = dout.len() as u32;
         let r_ptr = r.as_ptr() as *const i8;
@@ -918,6 +954,32 @@ impl ECC {
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `dout` or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::fs;
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let key_path = "../../../certs/ecc-client-key.der";
+    /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &mut signature[0..signature_length];
+    /// let mut r = [0u8; 32];
+    /// let mut r_size = 0u32;
+    /// let mut s = [0u8; 32];
+    /// let mut s_size = 0u32;
+    /// ECC::sig_to_rs(signature, &mut r, &mut r_size, &mut s, &mut s_size).expect("Error with sig_to_rs()");
+    /// let r = &r[0..r_size as usize];
+    /// let s = &s[0..s_size as usize];
+    /// let mut sig_out = [0u8; 128];
+    /// let sig_out_size = ECC::rs_bin_to_sig(r, s, &mut sig_out).expect("Error with rs_bin_to_sig()");
+    /// assert_eq!(*signature, *&sig_out[0..sig_out_size]);
+    /// ```
     pub fn rs_bin_to_sig(r: &[u8], s: &[u8], dout: &mut [u8]) -> Result<usize, i32> {
         let r_size = r.len() as u32;
         let s_size = s.len() as u32;
@@ -941,6 +1003,32 @@ impl ECC {
     /// * `r_size`: Number of bytes written to `r` buffer.
     /// * `s`: Output buffer for S component.
     /// * `s_size`: Number of bytes written to `s` buffer.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::fs;
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let key_path = "../../../certs/ecc-client-key.der";
+    /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    /// let hash = [0x42u8; 32];
+    /// let mut signature = [0u8; 128];
+    /// let signature_length = ecc.sign_hash(&hash, &mut signature, &mut rng).expect("Error with sign_hash()");
+    /// let signature = &mut signature[0..signature_length];
+    /// let mut r = [0u8; 32];
+    /// let mut r_size = 0u32;
+    /// let mut s = [0u8; 32];
+    /// let mut s_size = 0u32;
+    /// ECC::sig_to_rs(signature, &mut r, &mut r_size, &mut s, &mut s_size).expect("Error with sig_to_rs()");
+    /// let r = &r[0..r_size as usize];
+    /// let s = &s[0..s_size as usize];
+    /// let mut sig_out = [0u8; 128];
+    /// let sig_out_size = ECC::rs_bin_to_sig(r, s, &mut sig_out).expect("Error with rs_bin_to_sig()");
+    /// assert_eq!(*signature, *&sig_out[0..sig_out_size]);
+    /// ```
     pub fn sig_to_rs(sig: &[u8], r: &mut [u8], r_size: &mut u32, s: &mut [u8], s_size: &mut u32) -> Result<(), i32> {
         let sig_len = sig.len() as u32;
         *r_size = r.len() as u32;
@@ -1239,6 +1327,19 @@ impl ECC {
     ///
     /// Returns either Ok(()) or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::fs;
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let key_path = "../../../certs/ecc-client-key.der";
+    /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    /// ecc.make_pub(Some(&mut rng)).expect("Error with make_pub()");
+    /// ```
     pub fn make_pub(&mut self, rng: Option<&mut RNG>) -> Result<(), i32> {
         let rng_ptr = match rng {
             Some(rng) => &mut rng.wc_rng,
@@ -1264,6 +1365,19 @@ impl ECC {
     ///
     /// Returns either Ok(ECCPoint) containing the public component ECCPoint
     /// or Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::fs;
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::ECC;
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let key_path = "../../../certs/ecc-client-key.der";
+    /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
+    /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
+    /// ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// ```
     pub fn make_pub_to_point(&mut self, rng: Option<&mut RNG>) -> Result<ECCPoint, i32> {
         let rng_ptr = match rng {
             Some(rng) => &mut rng.wc_rng,
