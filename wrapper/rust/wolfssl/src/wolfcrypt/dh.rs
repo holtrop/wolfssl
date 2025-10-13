@@ -46,6 +46,35 @@ impl DH {
     pub const FFDHE_6144: i32 = ws::WC_FFDHE_2048 as i32;
     pub const FFDHE_8192: i32 = ws::WC_FFDHE_2048 as i32;
 
+    /// Perform quick validity check of public key value against prime.
+    ///
+    /// This checks that:
+    /// * Public key is not 0 or 1.
+    /// * Public key is not equal to prime or prime - 1.
+    /// * Public key is not bigger than prime.
+    ///
+    /// # Parameters
+    ///
+    /// * `prime`: Buffer containing prime value.
+    /// * `public`: Buffer containing public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_pub_value(prime: &[u8], public: &[u8]) -> Result<(), i32> {
+        let prime_size = prime.len() as u32;
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhCheckPubValue(prime.as_ptr(), prime_size,
+                public.as_ptr(), public_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
     /// Compare given DH parameters to named parameter set.
     ///
     /// # Parameters
@@ -253,6 +282,140 @@ impl DH {
             return Err(rc);
         }
         Ok(dh)
+    }
+
+    /// Check public/private key pair for pair-wise consistency per process in
+    /// SP 800-56Ar3, section 5.6.2.1.4, method (b) for FFC.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Buffer containing public key.
+    /// * `private`: Buffer containing private key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_key_pair(&mut self, public: &[u8], private: &[u8]) -> Result<(), i32> {
+        let public_size = public.len() as u32;
+        let private_size = private.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhCheckKeyPair(&mut self.wc_dhkey,
+                public.as_ptr(), public_size,
+                private.as_ptr(), private_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Check private key for invalid numbers.
+    ///
+    /// The check is per process in SP 800-56Ar3, section 5.6.2.1.2.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Buffer containing private key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_priv_key(&mut self, private: &[u8]) -> Result<(), i32> {
+        let private_size = private.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhCheckPrivKey(&mut self.wc_dhkey,
+                private.as_ptr(), private_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Check private key for invalid numbers with optional prime value.
+    ///
+    /// This optionally allows the private key to be checked against the large
+    /// prime (q).
+    /// The check is per process in SP 800-56Ar3, section 5.6.2.1.2.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Buffer containing private key.
+    /// * `prime`: Buffer containing prime value (optional).
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_priv_key_ex(&mut self, private: &[u8], prime: Option<&[u8]>) -> Result<(), i32> {
+        let private_size = private.len() as u32;
+        let mut prime_ptr: *const u8 = null();
+        let mut prime_size = 0u32;
+        if let Some(prime) = prime {
+            prime_ptr = prime.as_ptr();
+            prime_size = prime.len() as u32;
+        }
+        let rc = unsafe {
+            ws::wc_DhCheckPrivKey_ex(&mut self.wc_dhkey,
+                private.as_ptr(), private_size,
+                prime_ptr, prime_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Check public key for invalid numbers (partial check).
+    ///
+    /// This performs a partial public-key validation routine.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Buffer containing public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_pub_key(&mut self, public: &[u8]) -> Result<(), i32> {
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhCheckPubKey(&mut self.wc_dhkey, public.as_ptr(), public_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Check public key for invalid numbers (full check).
+    ///
+    /// This performs a full public-key validation routine.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Buffer containing public key.
+    /// * `prime`: Buffer containing prime value.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_pub_key_ex(&mut self, public: &[u8], prime: &[u8]) -> Result<(), i32> {
+        let public_size = public.len() as u32;
+        let prime_size = prime.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhCheckPubKey_ex(&mut self.wc_dhkey,
+                public.as_ptr(), public_size,
+                prime.as_ptr(), prime_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
     }
 
     /// Export Diffie-Hellman context parameters.
