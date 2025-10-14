@@ -481,6 +481,34 @@ impl DH {
         }
         Ok(())
     }
+
+    /// Generate a shared secret agreed upon by both parties.
+    ///
+    /// This function generates an agreed upon secret key based on a local
+    /// private key and a received public key. If completed on both sides of an
+    /// exchange, this function generates an agreed upon secret key for
+    /// symmetric communication. On successfully generating a shared secret
+    /// key, the size of the secret key written to `dout` will be returned.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the size of the key written to
+    /// `dout` or Err(e) containing the wolfSSL library error code value.
+    pub fn shared_secret(&mut self, dout: &mut [u8], private: &[u8], other_pub: &[u8]) -> Result<usize, i32> {
+        let mut dout_size = dout.len() as u32;
+        let private_size = private.len() as u32;
+        let other_pub_size = other_pub.len() as u32;
+        let rc = unsafe {
+            ws::wc_DhAgree(&mut self.wc_dhkey,
+                dout.as_mut_ptr(), &mut dout_size,
+                private.as_ptr(), private_size,
+                other_pub.as_ptr(), other_pub_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(dout_size as usize)
+    }
 }
 
 impl Drop for DH {
