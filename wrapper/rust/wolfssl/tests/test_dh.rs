@@ -25,6 +25,18 @@ fn test_dh_named_parameters() {
 }
 
 #[test]
+fn test_generate_params() {
+    let mut rng = RNG::new().expect("Error with RNG::new()");
+    let mut dh = DH::generate(&mut rng, 2048).expect("Error with generate()");
+
+    let mut private = [0u8; 256];
+    let mut private_size = 0u32;
+    let mut public = [0u8; 256];
+    let mut public_size = 0u32;
+    dh.generate_key_pair(&mut rng, &mut private, &mut private_size, &mut public, &mut public_size).expect("Error with generate_key_pair()");
+}
+
+#[test]
 fn test_generate_key_pair() {
     let mut rng = RNG::new().expect("Error with RNG::new()");
     let mut dh = DH::new_named(DH::FFDHE_2048).expect("Error with new_named()");
@@ -150,5 +162,6 @@ fn test_dh_checks() {
     let private = &private[0..(private_size as usize)];
     let public = &public[0..(public_size as usize)];
     dh.check_priv_key_ex(private, Some(&q)).expect("Error with check_priv_key_ex()");
+    DH::check_pub_value(&p, public).expect("Error with check_pub_value()");
     dh.check_pub_key_ex(public, &q0).expect("Error with check_pub_key_ex()");
 }
