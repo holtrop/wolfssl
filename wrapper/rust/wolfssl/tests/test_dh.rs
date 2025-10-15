@@ -63,7 +63,7 @@ fn test_generate_key_pair() {
     let public = &public[0..(public_size as usize)];
     dh.check_key_pair(public, private).expect("Error with check_key_pair()");
     dh.check_priv_key(private).expect("Error with check_priv_key()");
-    dh.check_pub_key(public).expect("Error with check_priv_key()");
+    dh.check_pub_key(public).expect("Error with check_pub_key()");
 }
 
 #[test]
@@ -164,4 +164,33 @@ fn test_dh_checks() {
     dh.check_priv_key_ex(private, Some(&q)).expect("Error with check_priv_key_ex()");
     DH::check_pub_value(&p, public).expect("Error with check_pub_value()");
     dh.check_pub_key_ex(public, &q0).expect("Error with check_pub_key_ex()");
+}
+
+#[test]
+fn test_dh_shared_secret() {
+    let mut rng = RNG::new().expect("Error with RNG::new()");
+    let mut dh = DH::new_named(DH::FFDHE_2048).expect("Error with new_named()");
+
+    let mut private0 = [0u8; 256];
+    let mut private0_size = 0u32;
+    let mut public0 = [0u8; 256];
+    let mut public0_size = 0u32;
+    dh.generate_key_pair(&mut rng, &mut private0, &mut private0_size, &mut public0, &mut public0_size).expect("Error with generate_key_pair()");
+
+    let mut private1 = [0u8; 256];
+    let mut private1_size = 0u32;
+    let mut public1 = [0u8; 256];
+    let mut public1_size = 0u32;
+    dh.generate_key_pair(&mut rng, &mut private1, &mut private1_size, &mut public1, &mut public1_size).expect("Error with generate_key_pair()");
+
+    let mut ss0 = [0u8; 256];
+    let ss0_size = dh.shared_secret(&mut ss0, &private0, &public1).expect("Error with shared_secret()");
+    let ss0 = &ss0[0..ss0_size];
+
+    let mut ss1 = [0u8; 256];
+    let ss1_size = dh.shared_secret(&mut ss1, &private1, &public0).expect("Error with shared_secret()");
+    let ss1 = &ss1[0..ss1_size];
+
+    assert_eq!(ss0_size, ss1_size);
+    assert_eq!(*ss0, *ss1);
 }
