@@ -383,7 +383,7 @@ impl SHA3_224 {
     }
 
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA224_DIGEST_SIZE as usize) {
+        if hash.len() != (ws::WC_SHA3_224_DIGEST_SIZE as usize) {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -446,7 +446,7 @@ impl SHA3_256 {
     }
 
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA256_DIGEST_SIZE as usize) {
+        if hash.len() != (ws::WC_SHA3_256_DIGEST_SIZE as usize) {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -509,7 +509,7 @@ impl SHA3_384 {
     }
 
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA384_DIGEST_SIZE as usize) {
+        if hash.len() != (ws::WC_SHA3_384_DIGEST_SIZE as usize) {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -572,7 +572,7 @@ impl SHA3_512 {
     }
 
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA512_DIGEST_SIZE as usize) {
+        if hash.len() != (ws::WC_SHA3_512_DIGEST_SIZE as usize) {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
