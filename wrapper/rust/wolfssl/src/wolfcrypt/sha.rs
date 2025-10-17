@@ -37,6 +37,22 @@ pub struct SHA {
 }
 
 impl SHA {
+    /// SHA-1 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA_DIGEST_SIZE as usize;
+
+    /// Build a new SHA instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA;
+    /// let sha = SHA::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha: MaybeUninit<ws::wc_Sha> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha(wc_sha.as_mut_ptr()) };
@@ -48,6 +64,23 @@ impl SHA {
         Ok(sha)
     }
 
+    /// Reinitialize a SHA instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA;
+    /// let mut sha = SHA::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha(&mut self.wc_sha) };
         if rc != 0 {
@@ -56,6 +89,24 @@ impl SHA {
         Ok(())
     }
 
+    /// Update the SHA calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA;
+    /// let mut sha = SHA::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -67,8 +118,29 @@ impl SHA {
         Ok(())
     }
 
+    /// Finalize the SHA calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA;
+    /// let mut sha = SHA::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -100,6 +172,22 @@ pub struct SHA224 {
 }
 
 impl SHA224 {
+    /// SHA-224 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA224_DIGEST_SIZE as usize;
+
+    /// Build a new SHA224 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA224 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA224;
+    /// let sha = SHA224::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha224: MaybeUninit<ws::wc_Sha224> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha224(wc_sha224.as_mut_ptr()) };
@@ -111,6 +199,23 @@ impl SHA224 {
         Ok(sha224)
     }
 
+    /// Reinitialize a SHA224 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA224;
+    /// let mut sha = SHA224::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha224(&mut self.wc_sha224) };
         if rc != 0 {
@@ -119,6 +224,24 @@ impl SHA224 {
         Ok(())
     }
 
+    /// Update the SHA-224 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA224;
+    /// let mut sha = SHA224::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -130,8 +253,29 @@ impl SHA224 {
         Ok(())
     }
 
+    /// Finalize the SHA-224 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA224::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA224;
+    /// let mut sha = SHA224::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA224::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA224_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -163,6 +307,22 @@ pub struct SHA256 {
 }
 
 impl SHA256 {
+    /// SHA-256 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA256_DIGEST_SIZE as usize;
+
+    /// Build a new SHA256 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA256 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA256;
+    /// let sha = SHA256::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha256: MaybeUninit<ws::wc_Sha256> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha256(wc_sha256.as_mut_ptr()) };
@@ -174,6 +334,23 @@ impl SHA256 {
         Ok(sha256)
     }
 
+    /// Reinitialize a SHA256 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA256;
+    /// let mut sha = SHA256::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha256(&mut self.wc_sha256) };
         if rc != 0 {
@@ -182,6 +359,24 @@ impl SHA256 {
         Ok(())
     }
 
+    /// Update the SHA-256 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA256;
+    /// let mut sha = SHA256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -193,8 +388,29 @@ impl SHA256 {
         Ok(())
     }
 
+    /// Finalize the SHA-256 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA256::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA256;
+    /// let mut sha = SHA256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA256::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA256_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -226,6 +442,22 @@ pub struct SHA384 {
 }
 
 impl SHA384 {
+    /// SHA-384 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA384_DIGEST_SIZE as usize;
+
+    /// Build a new SHA384 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA384 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA384;
+    /// let sha = SHA384::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha384: MaybeUninit<ws::wc_Sha384> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha384(wc_sha384.as_mut_ptr()) };
@@ -237,6 +469,23 @@ impl SHA384 {
         Ok(sha384)
     }
 
+    /// Reinitialize a SHA384 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA384;
+    /// let mut sha = SHA384::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha384(&mut self.wc_sha384) };
         if rc != 0 {
@@ -245,6 +494,24 @@ impl SHA384 {
         Ok(())
     }
 
+    /// Update the SHA-384 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA384;
+    /// let mut sha = SHA384::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -256,8 +523,29 @@ impl SHA384 {
         Ok(())
     }
 
+    /// Finalize the SHA-384 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA384::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA384;
+    /// let mut sha = SHA384::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA384::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA384_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -289,6 +577,22 @@ pub struct SHA512 {
 }
 
 impl SHA512 {
+    /// SHA-512 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA512_DIGEST_SIZE as usize;
+
+    /// Build a new SHA512 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA512 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA512;
+    /// let sha = SHA512::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha512: MaybeUninit<ws::wc_Sha512> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha512(wc_sha512.as_mut_ptr()) };
@@ -300,6 +604,23 @@ impl SHA512 {
         Ok(sha512)
     }
 
+    /// Reinitialize a SHA512 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA512;
+    /// let mut sha = SHA512::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha512(&mut self.wc_sha512) };
         if rc != 0 {
@@ -308,6 +629,24 @@ impl SHA512 {
         Ok(())
     }
 
+    /// Update the SHA-512 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA512;
+    /// let mut sha = SHA512::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -319,8 +658,29 @@ impl SHA512 {
         Ok(())
     }
 
+    /// Finalize the SHA-512 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA512::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA512;
+    /// let mut sha = SHA512::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA512::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA512_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -352,6 +712,22 @@ pub struct SHA3_224 {
 }
 
 impl SHA3_224 {
+    /// SHA3-224 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA3_224_DIGEST_SIZE as usize;
+
+    /// Build a new SHA3_224 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA3_224 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_224;
+    /// let sha = SHA3_224::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha3: MaybeUninit<ws::wc_Sha3> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha3_224(wc_sha3.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -363,6 +739,23 @@ impl SHA3_224 {
         Ok(sha3_224)
     }
 
+    /// Reinitialize a SHA3_224 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_224;
+    /// let mut sha = SHA3_224::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha3_224(&mut self.wc_sha3, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -371,6 +764,24 @@ impl SHA3_224 {
         Ok(())
     }
 
+    /// Update the SHA3-224 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_224;
+    /// let mut sha = SHA3_224::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -382,8 +793,29 @@ impl SHA3_224 {
         Ok(())
     }
 
+    /// Finalize the SHA3-224 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA3_224::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_224;
+    /// let mut sha = SHA3_224::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA3_224::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA3_224_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -415,6 +847,22 @@ pub struct SHA3_256 {
 }
 
 impl SHA3_256 {
+    /// SHA3-256 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA3_256_DIGEST_SIZE as usize;
+
+    /// Build a new SHA3_256 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA3_256 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_256;
+    /// let sha = SHA3_256::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha3: MaybeUninit<ws::wc_Sha3> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha3_256(wc_sha3.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -426,6 +874,23 @@ impl SHA3_256 {
         Ok(sha3_256)
     }
 
+    /// Reinitialize a SHA3_256 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_256;
+    /// let mut sha = SHA3_256::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha3_256(&mut self.wc_sha3, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -434,6 +899,24 @@ impl SHA3_256 {
         Ok(())
     }
 
+    /// Update the SHA3-256 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_256;
+    /// let mut sha = SHA3_256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -445,8 +928,29 @@ impl SHA3_256 {
         Ok(())
     }
 
+    /// Finalize the SHA3-256 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA3_256::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_256;
+    /// let mut sha = SHA3_256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA3_256::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA3_256_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -478,6 +982,22 @@ pub struct SHA3_384 {
 }
 
 impl SHA3_384 {
+    /// SHA3-384 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA3_384_DIGEST_SIZE as usize;
+
+    /// Build a new SHA3_384 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA3_384 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_384;
+    /// let sha = SHA3_384::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha3: MaybeUninit<ws::wc_Sha3> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha3_384(wc_sha3.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -489,6 +1009,23 @@ impl SHA3_384 {
         Ok(sha3_384)
     }
 
+    /// Reinitialize a SHA3_384 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_384;
+    /// let mut sha = SHA3_384::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha3_384(&mut self.wc_sha3, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -497,6 +1034,24 @@ impl SHA3_384 {
         Ok(())
     }
 
+    /// Update the SHA3-384 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_384;
+    /// let mut sha = SHA3_384::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -508,8 +1063,29 @@ impl SHA3_384 {
         Ok(())
     }
 
+    /// Finalize the SHA3-384 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA3_384::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_384;
+    /// let mut sha = SHA3_384::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA3_384::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA3_384_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -541,6 +1117,22 @@ pub struct SHA3_512 {
 }
 
 impl SHA3_512 {
+    /// SHA3-512 digest size in bytes.
+    pub const DIGEST_SIZE: usize = ws::WC_SHA3_512_DIGEST_SIZE as usize;
+
+    /// Build a new SHA3_512 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHA3_512 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_512;
+    /// let sha = SHA3_512::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_sha3: MaybeUninit<ws::wc_Sha3> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitSha3_512(wc_sha3.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -552,6 +1144,23 @@ impl SHA3_512 {
         Ok(sha3_512)
     }
 
+    /// Reinitialize a SHA3_512 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_512;
+    /// let mut sha = SHA3_512::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitSha3_512(&mut self.wc_sha3, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -560,6 +1169,24 @@ impl SHA3_512 {
         Ok(())
     }
 
+    /// Update the SHA3-512 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_512;
+    /// let mut sha = SHA3_512::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -571,8 +1198,29 @@ impl SHA3_512 {
         Ok(())
     }
 
+    /// Finalize the SHA3-512 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash. The length
+    ///   should be SHA3_512::DIGEST_SIZE.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHA3_512;
+    /// let mut sha = SHA3_512::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; SHA3_512::DIGEST_SIZE];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
-        if hash.len() != (ws::WC_SHA3_512_DIGEST_SIZE as usize) {
+        if hash.len() != Self::DIGEST_SIZE {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
         let rc = unsafe {
@@ -604,6 +1252,22 @@ pub struct SHAKE128 {
 }
 
 impl SHAKE128 {
+    /// Squeeze block size.
+    pub const SQUEEZE_BLOCK_SIZE: usize = ws::WC_SHA3_128_BLOCK_SIZE as usize;
+
+    /// Build a new SHAKE128 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHAKE128 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let sha = SHAKE128::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_shake: MaybeUninit<ws::wc_Shake> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitShake128(wc_shake.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -615,6 +1279,23 @@ impl SHAKE128 {
         Ok(shake128)
     }
 
+    /// Reinitialize a SHAKE128 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let mut sha = SHAKE128::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitShake128(&mut self.wc_shake, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -623,6 +1304,24 @@ impl SHAKE128 {
         Ok(())
     }
 
+    /// Update the SHAKE128 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let mut sha = SHAKE128::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -634,6 +1333,26 @@ impl SHAKE128 {
         Ok(())
     }
 
+    /// Finalize the SHAKE128 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let mut sha = SHAKE128::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; 32];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
         let hash_size = hash.len() as u32;
         let rc = unsafe {
@@ -645,6 +1364,24 @@ impl SHAKE128 {
         Ok(())
     }
 
+    /// Absorb the provided byte array. Cannot be called incrementally.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Data buffer to absorb.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let mut sha = SHAKE128::new().expect("Error with new()");
+    /// sha.absorb(b"input").expect("Error with absorb()");
+    /// ```
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -656,12 +1393,34 @@ impl SHAKE128 {
         Ok(())
     }
 
+    /// Squeeze out more blocks of data.
+    ///
+    /// This function can be called inrementally.
+    ///
+    /// # Parameters
+    ///
+    /// * `dout`: Output buffer.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE128;
+    /// let mut sha = SHAKE128::new().expect("Error with new()");
+    /// sha.absorb(b"input").expect("Error with absorb()");
+    /// let mut buffer = [0u8; 2 * SHAKE128::SQUEEZE_BLOCK_SIZE];
+    /// sha.squeeze_blocks(&mut buffer).expect("Error with squeeze_blocks()");
+    /// ```
     pub fn squeeze_blocks(&mut self, dout: &mut [u8]) -> Result<(), i32> {
         let dout_size = dout.len() as u32;
-        if dout_size % ws::WC_SHA3_128_BLOCK_SIZE != 0 {
+        if dout_size % (Self::SQUEEZE_BLOCK_SIZE as u32) != 0 {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
-        let n_blocks = (dout_size / ws::WC_SHA3_128_BLOCK_SIZE) as u32;
+        let n_blocks = (dout_size / (Self::SQUEEZE_BLOCK_SIZE as u32)) as u32;
         let rc = unsafe {
             ws::wc_Shake128_SqueezeBlocks(&mut self.wc_shake, dout.as_mut_ptr(), n_blocks)
         };
@@ -691,6 +1450,22 @@ pub struct SHAKE256 {
 }
 
 impl SHAKE256 {
+    /// Squeeze block size.
+    pub const SQUEEZE_BLOCK_SIZE: usize = ws::WC_SHA3_256_BLOCK_SIZE as usize;
+
+    /// Build a new SHAKE256 instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(sha) containing the SHAKE256 struct instance or Err(e)
+    /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let sha = SHAKE256::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut wc_shake: MaybeUninit<ws::wc_Shake> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_InitShake256(wc_shake.as_mut_ptr(), null_mut(), ws::INVALID_DEVID) };
@@ -702,6 +1477,23 @@ impl SHAKE256 {
         Ok(shake256)
     }
 
+    /// Reinitialize a SHAKE256 instance for a new hash calculation.
+    ///
+    /// This does not need to be called after `new()`, but should be called
+    /// after a hash calculation to prepare for a new calculation.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let mut sha = SHAKE256::new().expect("Error with new()");
+    /// sha.init().expect("Error with init()");
+    /// ```
     pub fn init(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_InitShake256(&mut self.wc_shake, null_mut(), ws::INVALID_DEVID) };
         if rc != 0 {
@@ -710,6 +1502,24 @@ impl SHAKE256 {
         Ok(())
     }
 
+    /// Update the SHAKE256 calculation by feeding in more input data.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Input data.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let mut sha = SHAKE256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -721,6 +1531,26 @@ impl SHAKE256 {
         Ok(())
     }
 
+    /// Finalize the SHAKE256 calculation and retrieve the calculated hash.
+    ///
+    /// # Parameters
+    ///
+    /// * `hash`: Buffer in which to store the calculated hash.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let mut sha = SHAKE256::new().expect("Error with new()");
+    /// sha.update(b"input").expect("Error with update()");
+    /// let mut hash = [0u8; 32];
+    /// sha.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
         let hash_size = hash.len() as u32;
         let rc = unsafe {
@@ -732,6 +1562,24 @@ impl SHAKE256 {
         Ok(())
     }
 
+    /// Absorb the provided byte array. Cannot be called incrementally.
+    ///
+    /// # Parameters
+    ///
+    /// * `data`: Data buffer to absorb.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let mut sha = SHAKE256::new().expect("Error with new()");
+    /// sha.absorb(b"input").expect("Error with absorb()");
+    /// ```
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -743,12 +1591,34 @@ impl SHAKE256 {
         Ok(())
     }
 
+    /// Squeeze out more blocks of data.
+    ///
+    /// This function can be called inrementally.
+    ///
+    /// # Parameters
+    ///
+    /// * `dout`: Output buffer.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::sha::SHAKE256;
+    /// let mut sha = SHAKE256::new().expect("Error with new()");
+    /// sha.absorb(b"input").expect("Error with absorb()");
+    /// let mut buffer = [0u8; 2 * SHAKE256::SQUEEZE_BLOCK_SIZE];
+    /// sha.squeeze_blocks(&mut buffer).expect("Error with squeeze_blocks()");
+    /// ```
     pub fn squeeze_blocks(&mut self, dout: &mut [u8]) -> Result<(), i32> {
         let dout_size = dout.len() as u32;
-        if dout_size % ws::WC_SHA3_256_BLOCK_SIZE != 0 {
+        if dout_size % (Self::SQUEEZE_BLOCK_SIZE as u32) != 0 {
             return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
         }
-        let n_blocks = (dout_size / ws::WC_SHA3_256_BLOCK_SIZE) as u32;
+        let n_blocks = (dout_size / (Self::SQUEEZE_BLOCK_SIZE as u32)) as u32;
         let rc = unsafe {
             ws::wc_Shake256_SqueezeBlocks(&mut self.wc_shake, dout.as_mut_ptr(), n_blocks)
         };

@@ -1,5 +1,4 @@
 use wolfssl::wolfcrypt::sha::*;
-use wolfssl_sys as ws;
 
 #[test]
 fn test_sha() {
@@ -7,7 +6,7 @@ fn test_sha() {
     fn test1(sha: &mut SHA, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -32,7 +31,7 @@ fn test_sha224() {
     fn test1(sha: &mut SHA224, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA224_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA224::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -51,7 +50,7 @@ fn test_sha256() {
     fn test1(sha: &mut SHA256, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA256_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA256::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -76,7 +75,7 @@ fn test_sha384() {
     fn test1(sha: &mut SHA384, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA384_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA384::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -98,7 +97,7 @@ fn test_sha512() {
     fn test1(sha: &mut SHA512, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA512_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA512::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -120,7 +119,7 @@ fn test_sha3_224() {
     fn test1(sha: &mut SHA3_224, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA3_224_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA3_224::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -142,7 +141,7 @@ fn test_sha3_256() {
     fn test1(sha: &mut SHA3_256, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA3_256_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA3_256::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -164,7 +163,7 @@ fn test_sha3_384() {
     fn test1(sha: &mut SHA3_384, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA3_384_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA3_384::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
@@ -190,7 +189,7 @@ fn test_sha3_512() {
     fn test1(sha: &mut SHA3_512, input: &[u8], expected_hash: &[u8]) {
         sha.init().expect("Error with init()");
         sha.update(input).expect("Error with update()");
-        let mut hash = [0u8; (ws::WC_SHA3_512_DIGEST_SIZE as usize)];
+        let mut hash = [0u8; SHA3_512::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(hash, *expected_hash);
     }
