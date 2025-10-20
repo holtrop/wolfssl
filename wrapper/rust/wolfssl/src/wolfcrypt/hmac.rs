@@ -60,6 +60,14 @@ impl HMAC {
     ///
     /// Returns either Ok(hmac) containing the HMAC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::HMAC;
+    /// let key = [0x42u8; 16];
+    /// let mut hmac = HMAC::new(HMAC::TYPE_SHA256, &key).expect("Error with new()");
+    /// ```
     pub fn new(typ: i32, key: &[u8]) -> Result<Self, i32> {
         let key_size = key.len() as u32;
         let mut wc_hmac: MaybeUninit<ws::Hmac> = MaybeUninit::uninit();
@@ -92,6 +100,14 @@ impl HMAC {
     ///
     /// Returns either Ok(hmac) containing the HMAC struct instance or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::HMAC;
+    /// let key = [0x42u8; 3];
+    /// let mut hmac = HMAC::new_allow_short_key(HMAC::TYPE_SHA256, &key).expect("Error with new_allow_short_key()");
+    /// ```
     pub fn new_allow_short_key(typ: i32, key: &[u8]) -> Result<Self, i32> {
         let key_size = key.len() as u32;
         let mut wc_hmac: MaybeUninit<ws::Hmac> = MaybeUninit::uninit();
@@ -125,6 +141,15 @@ impl HMAC {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::HMAC;
+    /// let key = [0x42u8; 16];
+    /// let mut hmac = HMAC::new(HMAC::TYPE_SHA256, &key).expect("Error with new()");
+    /// hmac.update(b"input").expect("Error with update()");
+    /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
         let data_size = data.len() as u32;
         let rc = unsafe {
@@ -147,6 +172,18 @@ impl HMAC {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::HMAC;
+    /// let key = [0x42u8; 16];
+    /// let mut hmac = HMAC::new(HMAC::TYPE_SHA256, &key).expect("Error with new()");
+    /// hmac.update(b"input").expect("Error with update()");
+    /// let hash_size = hmac.get_hmac_size().expect("Error with get_hmac_size()");
+    /// let mut hash = vec![0u8; hash_size];
+    /// hmac.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn finalize(&mut self, hash: &mut [u8]) -> Result<(), i32> {
         // Check the output buffer size since wc_HmacFinal() does not accept
         // a length parameter.
@@ -174,6 +211,18 @@ impl HMAC {
     ///
     /// Returns either Ok(size) containing the HMAC hash size or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::HMAC;
+    /// let key = [0x42u8; 16];
+    /// let mut hmac = HMAC::new(HMAC::TYPE_SHA256, &key).expect("Error with new()");
+    /// hmac.update(b"input").expect("Error with update()");
+    /// let hash_size = hmac.get_hmac_size().expect("Error with get_hmac_size()");
+    /// let mut hash = vec![0u8; hash_size];
+    /// hmac.finalize(&mut hash).expect("Error with finalize()");
+    /// ```
     pub fn get_hmac_size(&mut self) -> Result<usize, i32> {
         let typ = self.wc_hmac.macType as u32 as i32;
         let rc = unsafe { ws::wc_HmacSizeByType(typ) };
