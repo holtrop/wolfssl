@@ -368,4 +368,59 @@ impl HKDF {
         }
         Ok(())
     }
+
+    /// Perform HMAC Key Derivation Function (HKDF) operation.
+    ///
+    /// This utilizes HMAC to convert `key`, with an optional `salt` and
+    /// optional `info` into a derived key which is written to `out`.
+    ///
+    /// This one-shot function is a combination of `extract()` and `expand()`.
+    ///
+    /// # Parameters
+    ///
+    /// * `typ`: Hash type, one of `HMAC::TYPE_*`.
+    /// * `key`: Initial Key Material (IKM).
+    /// * `salt`: Salt value (optional).
+    /// * `info`: Optional buffer containing additional info.
+    /// * `out`: Output buffer to store HKDF result. The buffer can be any size.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::hmac::{HMAC,HKDF};
+    /// let ikm = b"MyPassword0";
+    /// let salt = b"12345678ABCDEFGH";
+    /// let info = b"0";
+    /// let mut out = [0u8; 16];
+    /// HKDF::hkdf(HMAC::TYPE_SHA256, ikm, Some(salt), Some(info), &mut out).expect("Error with hkdf()");
+    /// ```
+    pub fn hkdf(typ: i32, key: &[u8], salt: Option<&[u8]>, info: Option<&[u8]>, out: &mut[u8]) -> Result<(), i32> {
+        let key_size = key.len() as u32;
+        let mut salt_ptr = core::ptr::null();
+        let mut salt_size = 0u32;
+        if let Some(salt) = salt {
+            salt_ptr = salt.as_ptr();
+            salt_size = salt.len() as u32;
+        }
+        let mut info_ptr = core::ptr::null();
+        let mut info_size = 0u32;
+        if let Some(info) = info {
+            info_ptr = info.as_ptr();
+            info_size = info.len() as u32;
+        }
+        let out_size = out.len() as u32;
+        let rc = unsafe {
+            ws::wc_HKDF(typ, key.as_ptr(), key_size, salt_ptr, salt_size,
+                info_ptr, info_size, out.as_mut_ptr(), out_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
 }
