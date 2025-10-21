@@ -1,4 +1,4 @@
-use wolfssl::wolfcrypt::hmac::HMAC;
+use wolfssl::wolfcrypt::hmac::*;
 use wolfssl_sys as ws;
 
 #[test]
@@ -44,4 +44,22 @@ fn test_hmac_sha256() {
         hmac.finalize(&mut hash).expect("Error with finalize()");
         assert_eq!(*expected[i], hash);
     }
+}
+
+#[test]
+fn test_hkdf() {
+    let ikm = b"MyPassword0";
+    let salt = b"12345678ABCDEFGH";
+    let mut extract_out = [0u8; ws::WC_SHA256_DIGEST_SIZE as usize];
+    HKDF::extract(HMAC::TYPE_SHA256, Some(salt), ikm, &mut extract_out).expect("Error with extract()");
+
+    let info = b"0";
+    let mut expand_out = [0u8; 16];
+    HKDF::expand(HMAC::TYPE_SHA256, &extract_out, Some(info), &mut expand_out).expect("Error with expand()");
+
+    let expected_key = [
+        0x17, 0x5F, 0x24, 0xB3, 0x18, 0x20, 0xF3, 0xD4,
+        0x71, 0x97, 0x8A, 0x98, 0x9E, 0xB2, 0xC1, 0x35
+    ];
+    assert_eq!(expand_out, expected_key);
 }
