@@ -49,6 +49,24 @@ impl HMAC {
     pub const TYPE_SHA3_384: i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_384 as i32;
     pub const TYPE_SHA3_512: i32 = ws::wc_HashType_WC_HASH_TYPE_SHA3_512 as i32;
 
+    /// Get HMAC hash size by type.
+    ///
+    /// # Parameters
+    ///
+    /// * `typ`: Hash type, one of `HMAC::TYPE_*`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the HMAC hash size or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn get_hmac_size_by_type(typ: i32) -> Result<usize, i32> {
+        let rc = unsafe { ws::wc_HmacSizeByType(typ) };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(rc as u32 as usize)
+    }
+
     /// Create a new HMAC object with the given hash type and encryption key.
     ///
     /// # Parameters

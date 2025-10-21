@@ -3,6 +3,9 @@ use wolfssl_sys as ws;
 
 #[test]
 fn test_hmac_sha256() {
+    let hmac_size = HMAC::get_hmac_size_by_type(HMAC::TYPE_SHA256).expect("Error with get_hmac_size_by_type()");
+    assert_eq!(hmac_size, ws::WC_SHA256_DIGEST_SIZE as usize);
+
     let keys: [&[u8]; 5] = [
         b"\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b",
         b"Jefe",
