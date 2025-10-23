@@ -24,6 +24,7 @@ pub mod ecc;
 pub mod hkdf;
 pub mod hmac;
 pub mod kdf;
+pub mod prf;
 pub mod random;
 pub mod rsa;
 pub mod sha;
