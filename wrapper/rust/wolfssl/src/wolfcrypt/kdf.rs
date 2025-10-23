@@ -152,16 +152,28 @@ pub fn tls13_hkdf_expand_label(typ: i32, key: &[u8], protocol: &[u8], label: &[u
 /// # Parameters
 ///
 /// * `typ`: Hash type, one of `HMAC::TYPE_*`.
-/// * `key_id`
-/// * `k`
-/// * `h`
-/// * `session_id`
+/// * `key_id`: Key ID, typically 'A' through 'F'.
+/// * `k`: Initial key.
+/// * `h`: Exchange hash.
+/// * `session_id`: Unique identifier for the SSH session.
 /// * `key`: Output buffer.
 ///
 /// # Returns
 ///
 /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
 /// library error code value.
+///
+/// # Example
+///
+/// ```rust
+/// use wolfssl::wolfcrypt::hmac::HMAC;
+/// use wolfssl::wolfcrypt::kdf::*;
+/// let k = [0x42u8; 256];
+/// let h = [0x43u8; 32];
+/// let sid = [0x44u8; 32];
+/// let mut out = [0u8; 16];
+/// ssh_kdf(HMAC::TYPE_SHA256, b'A', &k, &h, &sid, &mut out).expect("Error with ssh_kdf()");
+/// ```
 pub fn ssh_kdf(typ: i32, key_id: u8, k: &[u8], h: &[u8], session_id: &[u8], key: &mut [u8]) -> Result<(), i32> {
     let key_size = key.len() as u32;
     let k_size = k.len() as u32;
