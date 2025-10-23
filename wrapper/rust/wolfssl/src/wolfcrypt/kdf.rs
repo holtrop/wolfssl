@@ -26,7 +26,6 @@ It leverages the `wolfssl-sys` crate for low-level FFI bindings, encapsulating
 the raw C functions in a memory-safe and easy-to-use Rust API.
 */
 
-//use std::mem::MaybeUninit;
 use crate::wolfcrypt::hmac::HMAC;
 use wolfssl_sys as ws;
 
