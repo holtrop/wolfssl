@@ -29,6 +29,15 @@ the raw C functions in a memory-safe and easy-to-use Rust API.
 use crate::wolfcrypt::hmac::HMAC;
 use wolfssl_sys as ws;
 
+pub const SRTP_LABEL_ENCRYPTION: u8 = ws::WC_SRTP_LABEL_ENCRYPTION as u8;
+pub const SRTP_LABEL_MSG_AUTH: u8 = ws::WC_SRTP_LABEL_MSG_AUTH as u8;
+pub const SRTP_LABEL_SALT: u8 = ws::WC_SRTP_LABEL_SALT as u8;
+pub const SRTCP_LABEL_ENCRYPTION: u8 = ws::WC_SRTCP_LABEL_ENCRYPTION as u8;
+pub const SRTCP_LABEL_MSG_AUTH: u8 = ws::WC_SRTCP_LABEL_MSG_AUTH as u8;
+pub const SRTCP_LABEL_SALT: u8 = ws::WC_SRTCP_LABEL_SALT as u8;
+pub const SRTP_LABEL_HDR_ENCRYPTION: u8 = ws::WC_SRTP_LABEL_HDR_ENCRYPTION as u8;
+pub const SRTP_LABEL_HDR_SALT: u8 = ws::WC_SRTP_LABEL_HDR_SALT as u8;
+
 /// Perform RFC 5869 HKDF-Extract operation for TLS v1.3 key derivation.
 ///
 /// # Parameters
@@ -183,6 +192,134 @@ pub fn ssh_kdf(typ: i32, key_id: u8, k: &[u8], h: &[u8], session_id: &[u8], key:
             key.as_mut_ptr(), key_size,
             k.as_ptr(), k_size, h.as_ptr(), h_size,
             session_id.as_ptr(), session_size)
+    };
+    if rc != 0 {
+        return Err(rc);
+    }
+    Ok(())
+}
+
+/// Perform SRTP KDF algorithm to derive keys.
+///
+/// # Parameters
+///
+/// * `key`: Key to use with encryption.
+/// * `salt`: Random non-secret value.
+/// * `kdr_index`: Key derivation rate: -1 for 0, otherwise KDR = 2^kdr_index.
+/// * `idx`: Index value to XOR in.
+/// * `key1`: Output buffer for first key (label of 0x00).
+/// * `key2`: Output buffer for second key (label of 0x01).
+/// * `key3`: Output buffer for third key (label of 0x02).
+///
+/// # Returns
+///
+/// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+/// library error code value.
+pub fn srtp_kdf(key: &[u8], salt: &[u8], kdr_index: i32, idx: &[u8],
+        key1: &mut [u8], key2: &mut [u8], key3: &mut [u8]) -> Result<(), i32> {
+    let key_size = key.len() as u32;
+    let salt_size = salt.len() as u32;
+    let key1_size = key1.len() as u32;
+    let key2_size = key2.len() as u32;
+    let key3_size = key3.len() as u32;
+    let rc = unsafe {
+        ws::wc_SRTP_KDF(key.as_ptr(), key_size, salt.as_ptr(), salt_size,
+            kdr_index, idx.as_ptr(), key1.as_mut_ptr(), key1_size,
+            key2.as_mut_ptr(), key2_size, key3.as_mut_ptr(), key3_size)
+    };
+    if rc != 0 {
+        return Err(rc);
+    }
+    Ok(())
+}
+
+/// Perform SRTP KDF algorithm to derive a key with a given label.
+///
+/// # Parameters
+///
+/// * `key`: Key to use with encryption.
+/// * `salt`: Random non-secret value.
+/// * `kdr_index`: Key derivation rate: -1 for 0, otherwise KDR = 2^kdr_index.
+/// * `idx`: Index value to XOR in.
+/// * `label`: Label: typically one of `SRTP_LABEL_*`.
+/// * `keyout`: Output buffer for generated key.
+///
+/// # Returns
+///
+/// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+/// library error code value.
+pub fn srtp_kdf_label(key: &[u8], salt: &[u8], kdr_index: i32, idx: &[u8],
+        label: u8, keyout: &mut [u8]) -> Result<(), i32> {
+    let key_size = key.len() as u32;
+    let salt_size = salt.len() as u32;
+    let keyout_size = keyout.len() as u32;
+    let rc = unsafe {
+        ws::wc_SRTP_KDF_label(key.as_ptr(), key_size, salt.as_ptr(), salt_size,
+            kdr_index, idx.as_ptr(), label, keyout.as_mut_ptr(), keyout_size)
+    };
+    if rc != 0 {
+        return Err(rc);
+    }
+    Ok(())
+}
+
+/// Perform SRTCP KDF algorithm to derive keys.
+///
+/// # Parameters
+///
+/// * `key`: Key to use with encryption. Key length must be 16, 24, or 32.
+/// * `salt`: Random non-secret value.
+/// * `kdr_index`: Key derivation rate: -1 for 0, otherwise KDR = 2^kdr_index.
+/// * `idx`: Index value to XOR in.
+/// * `key1`: Output buffer for first key (label of 0x00).
+/// * `key2`: Output buffer for second key (label of 0x01).
+/// * `key3`: Output buffer for third key (label of 0x02).
+///
+/// # Returns
+///
+/// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+/// library error code value.
+pub fn srtcp_kdf(key: &[u8], salt: &[u8], kdr_index: i32, idx: &[u8],
+        key1: &mut [u8], key2: &mut [u8], key3: &mut [u8]) -> Result<(), i32> {
+    let key_size = key.len() as u32;
+    let salt_size = salt.len() as u32;
+    let key1_size = key1.len() as u32;
+    let key2_size = key2.len() as u32;
+    let key3_size = key3.len() as u32;
+    let rc = unsafe {
+        ws::wc_SRTCP_KDF(key.as_ptr(), key_size, salt.as_ptr(), salt_size,
+            kdr_index, idx.as_ptr(), key1.as_mut_ptr(), key1_size,
+            key2.as_mut_ptr(), key2_size, key3.as_mut_ptr(), key3_size)
+    };
+    if rc != 0 {
+        return Err(rc);
+    }
+    Ok(())
+}
+
+/// Perform SRTCP KDF algorithm to derive a key with a given label.
+///
+/// # Parameters
+///
+/// * `key`: Key to use with encryption.
+/// * `salt`: Random non-secret value.
+/// * `kdr_index`: Key derivation rate: -1 for 0, otherwise KDR = 2^kdr_index.
+/// * `idx`: Index value to XOR in.
+/// * `label`: Label: typically one of `SRTCP_LABEL_*`.
+/// * `keyout`: Output buffer for generated key.
+///
+/// # Returns
+///
+/// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+/// library error code value.
+pub fn srtcp_kdf_label(key: &[u8], salt: &[u8], kdr_index: i32, idx: &[u8],
+        label: u8, keyout: &mut [u8]) -> Result<(), i32> {
+    let key_size = key.len() as u32;
+    let salt_size = salt.len() as u32;
+    let keyout_size = keyout.len() as u32;
+    let rc = unsafe {
+        ws::wc_SRTCP_KDF_label(key.as_ptr(), key_size, salt.as_ptr(), salt_size,
+            kdr_index, idx.as_ptr(), label, keyout.as_mut_ptr(), keyout_size)
     };
     if rc != 0 {
         return Err(rc);
