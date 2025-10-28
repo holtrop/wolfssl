@@ -185,3 +185,15 @@ fn test_srtcp_kdf() {
     srtcp_kdf_label(&key, &salt, -1, &index, SRTCP_LABEL_SALT, &mut key_s).expect("Error with srtcp_kdf_label()");
     assert_eq!(key_s, expected_ks);
 }
+
+#[test]
+fn test_srtp_kdr_to_idx() {
+    assert_eq!(srtp_kdr_to_index(0), -1);
+    assert_eq!(srtp_kdr_to_index(1), 0);
+    assert_eq!(srtp_kdr_to_index(2), 1);
+    assert_eq!(srtp_kdr_to_index(4), 2);
+    assert_eq!(srtp_kdr_to_index(8), 3);
+    assert_eq!(srtp_kdr_to_index(16), 4);
+    assert_eq!(srtp_kdr_to_index(65536), 16);
+    assert_eq!(srtp_kdr_to_index(1048576), 20);
+}
