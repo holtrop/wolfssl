@@ -21,6 +21,7 @@
 pub mod aes;
 pub mod dh;
 pub mod ecc;
+pub mod ed25519;
 pub mod hkdf;
 pub mod hmac;
 pub mod kdf;
