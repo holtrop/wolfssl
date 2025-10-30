@@ -774,7 +774,7 @@ int wc_ed25519_import_private_key_ex(const byte* priv, word32 privSz,
     \return 0 Returned upon successfully exporting the public key.
     \return BAD_FUNC_ARG Returned if any of the input values evaluate to NULL.
     \return BUFFER_E Returned if the buffer provided is not large enough to
-    store the private key. Upon returning this error, the function sets the
+    store the public key. Upon returning this error, the function sets the
     size required in outLen.
 
     \param [in] key Pointer to an ed25519_key structure from which to export the
@@ -804,7 +804,7 @@ int wc_ed25519_import_private_key_ex(const byte* priv, word32 privSz,
     \sa wc_ed25519_export_private_only
 */
 
-int wc_ed25519_export_public(ed25519_key* key, byte* out, word32* outLen);
+int wc_ed25519_export_public(const ed25519_key* key, byte* out, word32* outLen);
 
 /*!
     \ingroup ED25519
@@ -844,7 +844,7 @@ int wc_ed25519_export_public(ed25519_key* key, byte* out, word32* outLen);
     \sa wc_ed25519_import_private_key_ex
 */
 
-int wc_ed25519_export_private_only(ed25519_key* key, byte* out, word32* outLen);
+int wc_ed25519_export_private_only(const ed25519_key* key, byte* out, word32* outLen);
 
 /*!
     \ingroup ED25519
@@ -888,7 +888,7 @@ int wc_ed25519_export_private_only(ed25519_key* key, byte* out, word32* outLen);
     \sa wc_ed25519_export_private_only
 */
 
-int wc_ed25519_export_private(ed25519_key* key, byte* out, word32* outLen);
+int wc_ed25519_export_private(const ed25519_key* key, byte* out, word32* outLen);
 
 /*!
     \ingroup ED25519
@@ -935,7 +935,7 @@ int wc_ed25519_export_private(ed25519_key* key, byte* out, word32* outLen);
     \sa wc_ed25519_export_public
 */
 
-int wc_ed25519_export_key(ed25519_key* key,
+int wc_ed25519_export_key(const ed25519_key* key,
                           byte* priv, word32 *privSz,
                           byte* pub, word32 *pubSz);
 
@@ -999,7 +999,7 @@ int wc_ed25519_check_key(ed25519_key* key);
     \sa wc_ed25519_make_key
 */
 
-int wc_ed25519_size(ed25519_key* key);
+int wc_ed25519_size(const ed25519_key* key);
 
 /*!
     \ingroup ED25519
@@ -1028,7 +1028,7 @@ int wc_ed25519_size(ed25519_key* key);
     \sa wc_ed25519_pub_size
 */
 
-int wc_ed25519_priv_size(ed25519_key* key);
+int wc_ed25519_priv_size(const ed25519_key* key);
 
 /*!
     \ingroup ED25519
@@ -1056,7 +1056,7 @@ int wc_ed25519_priv_size(ed25519_key* key);
     \sa wc_ed25519_priv_size
 */
 
-int wc_ed25519_pub_size(ed25519_key* key);
+int wc_ed25519_pub_size(const ed25519_key* key);
 
 /*!
     \ingroup ED25519
@@ -1084,4 +1084,4 @@ int wc_ed25519_pub_size(ed25519_key* key);
     \sa wc_ed25519_sign_msg
 */
 
-int wc_ed25519_sig_size(ed25519_key* key);
+int wc_ed25519_sig_size(const ed25519_key* key);
