@@ -801,6 +801,7 @@ int wc_ed25519_import_private_key_ex(const byte* priv, word32 privSz,
 
     \sa wc_ed25519_import_public
     \sa wc_ed25519_import_public_ex
+    \sa wc_ed25519_export_private
     \sa wc_ed25519_export_private_only
 */
 
@@ -840,6 +841,7 @@ int wc_ed25519_export_public(const ed25519_key* key, byte* out, word32* outLen);
     \endcode
 
     \sa wc_ed25519_export_public
+    \sa wc_ed25519_export_private
     \sa wc_ed25519_import_private_key
     \sa wc_ed25519_import_private_key_ex
 */

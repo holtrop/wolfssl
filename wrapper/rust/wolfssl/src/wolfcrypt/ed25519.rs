@@ -41,6 +41,15 @@ pub struct Ed25519 {
 }
 
 impl Ed25519 {
+    /** Size of private key only. */
+    pub const KEY_SIZE: usize = ws::ED25519_KEY_SIZE as usize;
+    /** Size of signature. */
+    pub const SIG_SIZE: usize = ws::ED25519_SIG_SIZE as usize;
+    /** Compressed public key size. */
+    pub const PUB_KEY_SIZE: usize = ws::ED25519_PUB_KEY_SIZE as usize;
+    /** Size of both private and public key. */
+    pub const PRV_KEY_SIZE: usize = ws::ED25519_PRV_KEY_SIZE as usize;
+
     pub const ED25519: u8 = ws::Ed25519 as u8;
     pub const ED25519CTX: u8 = ws::Ed25519ctx as u8;
     pub const ED25519PH: u8 = ws::Ed25519ph as u8;
@@ -88,6 +97,123 @@ impl Ed25519 {
         let ws_key = unsafe { ws_key.assume_init() };
         let ed25519 = Ed25519 { ws_key };
         Ok(ed25519)
+    }
+
+    /// Check the public key is valid.
+    ///
+    /// When private key available, check the calculated public key matches.
+    /// When no private key, check Y is in range and an X is able to be
+    /// calculated.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn check_key(&mut self) -> Result<(), i32> {
+        let rc = unsafe { ws::wc_ed25519_check_key(&mut self.ws_key) };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Export private and public key to separate buffers.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Output buffer in which to store the private key.
+    /// * `private_size`: Output parameter storing the number of bytes written
+    ///   to the `private` buffer.
+    /// * `public`: Output buffer in which to store the public key.
+    /// * `public_size`: Output parameter storing the number of bytes written
+    ///   to the `public` buffer.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn export_key(&self, private: &mut [u8], private_size: &mut u32,
+            public: &mut [u8], public_size: &mut u32) -> Result<(), i32> {
+        *private_size = private.len() as u32;
+        *public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_export_key(&self.ws_key,
+                private.as_mut_ptr(), private_size,
+                public.as_mut_ptr(), public_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Export public key to buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Output buffer in which to store the public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `public` on success or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export_public(&self, public: &mut [u8]) -> Result<usize, i32> {
+        let mut public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_export_public(&self.ws_key, public.as_mut_ptr(),
+                &mut public_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(public_size as usize)
+    }
+
+    /// Export public/private key pair to buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `keyout`: Output buffer in which to store the key pair.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `keyout` on success or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export_private(&self, keyout: &mut [u8]) -> Result<usize, i32> {
+        let mut keyout_size = keyout.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_export_private(&self.ws_key, keyout.as_mut_ptr(),
+                &mut keyout_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(keyout_size as usize)
+    }
+
+    /// Export private key only to buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Output buffer in which to store the private key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// `private` on success or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn export_private_only(&self, private: &mut [u8]) -> Result<usize, i32> {
+        let mut private_size = private.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_export_private_only(&self.ws_key,
+                private.as_mut_ptr(), &mut private_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(private_size as usize)
     }
 
     /// Import a public Ed25519 key from buffer.
@@ -625,6 +751,62 @@ impl Ed25519 {
             return Err(rc);
         }
         Ok(res == 1)
+    }
+
+    /// Get the size of an Ed25519 key (32 bytes).
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the key size or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn size(&self) -> Result<usize, i32> {
+        let rc = unsafe { ws::wc_ed25519_size(&self.ws_key) };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(rc as usize)
+    }
+
+    /// Get the size of a private (including public) Ed25519 key (64 bytes).
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the key size or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn priv_size(&self) -> Result<usize, i32> {
+        let rc = unsafe { ws::wc_ed25519_priv_size(&self.ws_key) };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(rc as usize)
+    }
+
+    /// Get the size of a public Ed25519 key (32 bytes).
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the key size or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn pub_size(&self) -> Result<usize, i32> {
+        let rc = unsafe { ws::wc_ed25519_pub_size(&self.ws_key) };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(rc as usize)
+    }
+
+    /// Get the size of a Ed25519 signature (64 bytes).
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the key size or Err(e)
+    /// containing the wolfSSL library error code value.
+    pub fn sig_size(&self) -> Result<usize, i32> {
+        let rc = unsafe { ws::wc_ed25519_sig_size(&self.ws_key) };
+        if rc < 0 {
+            return Err(rc);
+        }
+        Ok(rc as usize)
     }
 }
 
