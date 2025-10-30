@@ -90,6 +90,136 @@ impl Ed25519 {
         Ok(ed25519)
     }
 
+    /// Import a public Ed25519 key from buffer.
+    ///
+    /// This function handles either compressed or uncompressed keys.
+    /// The public key is checked that it matches the private key if one is
+    /// already present.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Input buffer containing public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn import_public(&mut self, public: &[u8]) -> Result<(), i32> {
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_import_public(public.as_ptr(), public_size, &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Import a public Ed25519 key from buffer with trusted flag.
+    ///
+    /// This function handles either compressed or uncompressed keys.
+    /// The public key is checked that it matches the private key if one is
+    /// already present and trusted is 0.
+    ///
+    /// # Parameters
+    ///
+    /// * `public`: Input buffer containing public key.
+    /// * `trusted`: Whether the public key buffer is trusted.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn import_public_ex(&mut self, public: &[u8], trusted: bool) -> Result<(), i32> {
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_import_public_ex(public.as_ptr(), public_size,
+                &mut self.ws_key, if trusted {1} else {0})
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Import private Ed25519 key only from buffer.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Input buffer containing private key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn import_private_only(&mut self, private: &[u8]) -> Result<(), i32> {
+        let private_size = private.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_import_private_only(private.as_ptr(), private_size,
+                &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Import public/private Ed25519 key pair from buffers.
+    ///
+    /// This functions handles either compressed or uncompressed keys.
+    /// The public key is assumed to be untrusted and is checked against the
+    /// private key.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Input buffer containing private key.
+    /// * `public`: Input buffer containing private key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn import_private_key(&mut self, private: &[u8], public: &[u8]) -> Result<(), i32> {
+        let private_size = private.len() as u32;
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_import_private_key(private.as_ptr(), private_size,
+                public.as_ptr(), public_size, &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Import public/private Ed25519 key pair from buffers with trusted flag.
+    ///
+    /// This functions handles either compressed or uncompressed keys.
+    /// The public is checked against private key if not trusted.
+    ///
+    /// # Parameters
+    ///
+    /// * `private`: Input buffer containing private key.
+    /// * `public`: Input buffer containing private key.
+    /// * `trusted`: Whether the public key buffer is trusted.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn import_private_key_ex(&mut self, private: &[u8], public: &[u8], trusted: bool) -> Result<(), i32> {
+        let private_size = private.len() as u32;
+        let public_size = public.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_import_private_key_ex(private.as_ptr(), private_size,
+                public.as_ptr(), public_size, &mut self.ws_key, if trusted {1} else {0})
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
     /// Generate the Ed25519 public key from the private key stored in the
     /// Ed25519 object.
     ///
@@ -98,6 +228,11 @@ impl Ed25519 {
     /// # Parameters
     ///
     /// * `pubkey`: Output buffer in which to store the public key.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
     pub fn make_public(&mut self, pubkey: &mut [u8]) -> Result<(), i32> {
         let pubkey_size = pubkey.len() as u32;
         let rc = unsafe {
@@ -181,12 +316,43 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
-    pub fn sign_hash_ctx(&mut self, hash: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
+    pub fn sign_hash_ph(&mut self, hash: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
         let hash_size = hash.len() as u32;
         let context_size = context.len() as u8;
         let mut signature_size = signature.len() as u32;
         let rc = unsafe {
-            ws::wc_ed25519ph_sign_msg(hash.as_ptr(), hash_size,
+            ws::wc_ed25519ph_sign_hash(hash.as_ptr(), hash_size,
+                signature.as_mut_ptr(), &mut signature_size, &mut self.ws_key,
+                context.as_ptr(), context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(signature_size as usize)
+    }
+
+    /// Sign a message with context using Ed25519 key.
+    ///
+    /// The context is part of the data signed.
+    /// The message is pre-hashed before signature calculation.
+    ///
+    /// # Parameters
+    ///
+    /// * `message`: Message digest to sign.
+    /// * `context`: Buffer containing context for which message is being signed.
+    /// * `signature`: Output buffer to hold signature.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(size) containing the number of bytes written to
+    /// signature on success or Err(e) containing the wolfSSL library error
+    /// code value.
+    pub fn sign_msg_ph(&mut self, message: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
+        let message_size = message.len() as u32;
+        let context_size = context.len() as u8;
+        let mut signature_size = signature.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519ph_sign_msg(message.as_ptr(), message_size,
                 signature.as_mut_ptr(), &mut signature_size, &mut self.ws_key,
                 context.as_ptr(), context_size)
         };
@@ -230,6 +396,235 @@ impl Ed25519 {
             return Err(rc);
         }
         Ok(signature_size as usize)
+    }
+
+    /// Verify the Ed25519 signature of a message to ensure authenticity.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `message`: Message to verify the signature of.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_msg(&mut self, signature: &[u8], message: &[u8]) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let message_size = message.len() as u32;
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519_verify_msg(signature.as_ptr(), signature_size,
+                message.as_ptr(), message_size, &mut res, &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
+    }
+
+    /// Verify the Ed25519 signature of a message and context to ensure authenticity.
+    ///
+    /// The context is included as part of the data verified.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `message`: Message to verify the signature of.
+    /// * `context`: Buffer containing context for which the message was signed.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_msg_ctx(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let message_size = message.len() as u32;
+        let context_size = context.len() as u8;
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519ctx_verify_msg(signature.as_ptr(), signature_size,
+                message.as_ptr(), message_size, &mut res, &mut self.ws_key,
+                context.as_ptr(), context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
+    }
+
+    /// Verify the Ed25519 signature of a message digest and context to ensure authenticity.
+    ///
+    /// The context is included as part of the data verified.
+    /// The hash algorithm used to create message digest must be SHA-512.
+    /// The message is pre-hashed before verification.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `hash`: Message to verify the signature of.
+    /// * `context`: Buffer containing context for which the hash was signed.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_hash_ph(&mut self, signature: &[u8], hash: &[u8], context: &[u8]) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let hash_size = hash.len() as u32;
+        let context_size = context.len() as u8;
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519ph_verify_hash(signature.as_ptr(), signature_size,
+                hash.as_ptr(), hash_size, &mut res, &mut self.ws_key,
+                context.as_ptr(), context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
+    }
+
+    /// Verify the Ed25519 signature of a message and context to ensure authenticity.
+    ///
+    /// The context is included as part of the data verified.
+    /// The message is pre-hashed before verification.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `message`: Message to verify the signature of.
+    /// * `context`: Buffer containing context for which the message was signed.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_msg_ph(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let message_size = message.len() as u32;
+        let context_size = context.len() as u8;
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519ph_verify_msg(signature.as_ptr(), signature_size,
+                message.as_ptr(), message_size, &mut res, &mut self.ws_key,
+                context.as_ptr(), context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
+    }
+
+    /// Verify the Ed25519 signature of a message and context to ensure authenticity.
+    ///
+    /// The context is included as part of the data verified.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `din`: Message to verify the signature of.
+    /// * `context`: Optional buffer containing context for which the input data was signed.
+    /// * `typ`: One of `Ed25519::ED25519`, `Ed25519::ED25519CTX`, or `Ed25519::ED25519PH`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_msg_ex(&mut self, signature: &[u8], din: &[u8], context: Option<&[u8]>, typ: u8) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let din_size = din.len() as u32;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519_verify_msg_ex(signature.as_ptr(), signature_size,
+                din.as_ptr(), din_size, &mut res, &mut self.ws_key, typ,
+                context_ptr, context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
+    }
+
+    /// Initialize Ed25519 key to perform streaming verification.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    /// * `context`: Optional buffer containing context for which the input data was signed.
+    /// * `typ`: One of `Ed25519::ED25519`, `Ed25519::ED25519CTX`, or `Ed25519::ED25519PH`.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn verify_msg_init(&mut self, signature: &[u8], context: Option<&[u8]>, typ: u8) -> Result<(), i32> {
+        let signature_size = signature.len() as u32;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
+        let rc = unsafe {
+            ws::wc_ed25519_verify_msg_init(signature.as_ptr(), signature_size,
+                &mut self.ws_key, typ, context_ptr, context_size)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Add input data to Ed25519 streaming verification.
+    ///
+    /// # Parameters
+    ///
+    /// * `din`: Segment of message to verify the signature of.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
+    /// library error code value.
+    pub fn verify_msg_update(&mut self, din: &[u8]) -> Result<(), i32> {
+        let din_size = din.len() as u32;
+        let rc = unsafe {
+            ws::wc_ed25519_verify_msg_update(din.as_ptr(), din_size,
+                &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(())
+    }
+
+    /// Finalize Ed25519 streaming verification.
+    ///
+    /// # Parameters
+    ///
+    /// * `signature`: Signature to verify.
+    ///
+    /// # Returns
+    ///
+    /// Returns either Ok(valid) containing whether the signature is valid or
+    /// Err(e) containing the wolfSSL library error code value.
+    pub fn verify_msg_final(&mut self, signature: &[u8]) -> Result<bool, i32> {
+        let signature_size = signature.len() as u32;
+        let mut res = 0i32;
+        let rc = unsafe {
+            ws::wc_ed25519_verify_msg_final(signature.as_ptr(), signature_size,
+                &mut res, &mut self.ws_key)
+        };
+        if rc != 0 {
+            return Err(rc);
+        }
+        Ok(res == 1)
     }
 }
 

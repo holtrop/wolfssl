@@ -440,8 +440,8 @@ int wc_ed25519ctx_verify_msg(const byte* sig, word32 siglen, const byte* msg,
     byte hash[] = { initialize with SHA-512 hash of message };
     byte context[] = { initialize with context of signature };
     // initialize key with received public key
-    ret = wc_ed25519ph_verify_hash(sig, sizeof(sig), msg, sizeof(msg),
-            &verified, &key, );
+    ret = wc_ed25519ph_verify_hash(sig, sizeof(sig), hash, sizeof(hash),
+            &verified, &key, context, sizeof(context));
     if (ret < 0) {
         // error performing verification
     } else if (verified == 0)
@@ -496,8 +496,8 @@ int wc_ed25519ph_verify_hash(const byte* sig, word32 siglen, const byte* hash,
     byte msg[] = { initialize with message };
     byte context[] = { initialize with context of signature };
     // initialize key with received public key
-    ret = wc_ed25519ctx_verify_msg(sig, sizeof(sig), msg, sizeof(msg),
-            &verified, &key, );
+    ret = wc_ed25519ph_verify_msg(sig, sizeof(sig), msg, sizeof(msg),
+            &verified, &key, context, sizeof(context));
     if (ret < 0) {
         // error performing verification
     } else if (verified == 0)
@@ -506,8 +506,8 @@ int wc_ed25519ph_verify_hash(const byte* sig, word32 siglen, const byte* hash,
     \endcode
 
     \sa wc_ed25519_verify_msg
+    \sa wc_ed25519ctx_verify_msg
     \sa wc_ed25519ph_verify_hash
-    \sa wc_ed25519ph_verify_msg
     \sa wc_ed25519_sign_msg
 */
 
@@ -747,7 +747,7 @@ int wc_ed25519_import_private_key(const byte* priv, word32 privSz,
 
     ed25519_key key;
     wc_ed25519_init_key(&key);
-    ret = wc_ed25519_import_private_key(priv, sizeof(priv), pub, sizeof(pub),
+    ret = wc_ed25519_import_private_key_ex(priv, sizeof(priv), pub, sizeof(pub),
             &key, 1);
     if (ret != 0) {
         // error importing key
