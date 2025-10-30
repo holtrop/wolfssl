@@ -6,10 +6,9 @@ fn test_make_public() {
     let mut rng = RNG::new().expect("Error creating RNG");
     let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
     let mut private = [0u8; Ed25519::KEY_SIZE];
-    let private_size = ed.export_private_only(&mut private).expect("Error with export_private_only()");
-    let private = &private[0..private_size];
+    ed.export_private_only(&mut private).expect("Error with export_private_only()");
     let mut ed2 = Ed25519::new().expect("Error with new()");
-    ed2.import_private_only(private).expect("Error with import_private_only()");
+    ed2.import_private_only(&private).expect("Error with import_private_only()");
     let mut public = [0u8; Ed25519::KEY_SIZE];
     ed2.make_public(&mut public).expect("Error with make_public()");
 }
@@ -48,7 +47,7 @@ fn test_sign_verify() {
     ];
 
     let mut ed = Ed25519::new().expect("Error with new()");
-    ed.import_private_key(&private_key, &public_key).expect("Error with import_private_key()");
+    ed.import_private_key(&private_key, Some(&public_key)).expect("Error with import_private_key()");
 
     let mut signature = [0u8; Ed25519::SIG_SIZE];
     ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
@@ -102,7 +101,7 @@ fn test_ctx_sign_verify() {
     ];
 
     let mut ed = Ed25519::new().expect("Error with new()");
-    ed.import_private_key(&private_key, &public_key).expect("Error with import_private_key()");
+    ed.import_private_key(&private_key, Some(&public_key)).expect("Error with import_private_key()");
 
     let mut signature = [0u8; Ed25519::SIG_SIZE];
     ed.sign_msg_ctx(&message, &context, &mut signature).expect("Error with sign_msg_ctx()");
@@ -150,7 +149,7 @@ fn test_ph_sign_verify() {
     ];
 
     let mut ed = Ed25519::new().expect("Error with new()");
-    ed.import_private_key(&private_key, &public_key).expect("Error with import_private_key()");
+    ed.import_private_key(&private_key, Some(&public_key)).expect("Error with import_private_key()");
 
     let mut signature = [0u8; Ed25519::SIG_SIZE];
     ed.sign_msg_ph(&message, &context, &mut signature).expect("Error with sign_msg_ph()");
@@ -165,4 +164,51 @@ fn test_ph_sign_verify() {
 
     let signature_valid = ed.verify_hash_ph(&signature, &hash, &context).expect("Error with verify_hash_ph()");
     assert!(signature_valid);
+}
+
+#[test]
+fn test_import_export() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+
+    let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+
+    let mut public2 = [0u8; Ed25519::PUB_KEY_SIZE];
+    ed.export_public(&mut public2).expect("Error with export_public()");
+    assert_eq!(public2, public);
+
+    let mut private2 = [0u8; Ed25519::PRV_KEY_SIZE];
+    ed.export_private(&mut private2).expect("Error with export_private2()");
+    assert_eq!(private2, private);
+
+    let mut private_only = [0u8; Ed25519::KEY_SIZE];
+    ed.export_private_only(&mut private_only).expect("Error with export_private_only()");
+
+    let mut ed = Ed25519::new().expect("Error with new()");
+    ed.import_private_key_ex(&private, Some(&public), false).expect("Error with import_private_key_ex()");
+
+    let mut ed = Ed25519::new().expect("Error with new()");
+    ed.import_private_only(&private_only).expect("Error with import_private_only()");
+    ed.import_public(&public).expect("Error with import_public()");
+    ed.import_public_ex(&public, false).expect("Error with import_public_ex()");
+}
+
+#[test]
+fn test_sizes() {
+    let mut rng = RNG::new().expect("Error creating RNG");
+    let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+
+    let size = ed.size().expect("Error with size()");
+    assert_eq!(size, Ed25519::KEY_SIZE);
+
+    let size = ed.priv_size().expect("Error with priv_size()");
+    assert_eq!(size, Ed25519::PRV_KEY_SIZE);
+
+    let size = ed.pub_size().expect("Error with pub_size()");
+    assert_eq!(size, Ed25519::PUB_KEY_SIZE);
+
+    let size = ed.sig_size().expect("Error with sig_size()");
+    assert_eq!(size, Ed25519::SIG_SIZE);
 }

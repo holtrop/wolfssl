@@ -121,25 +121,22 @@ impl Ed25519 {
     ///
     /// # Parameters
     ///
-    /// * `private`: Output buffer in which to store the private key.
-    /// * `private_size`: Output parameter storing the number of bytes written
-    ///   to the `private` buffer.
-    /// * `public`: Output buffer in which to store the public key.
-    /// * `public_size`: Output parameter storing the number of bytes written
-    ///   to the `public` buffer.
+    /// * `private`: Output buffer in which to store the private key. The
+    ///   length should be PRV_KEY_SIZE.
+    /// * `public`: Output buffer in which to store the public key. The length
+    ///   should be PUB_KEY_SIZE.
     ///
     /// # Returns
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
-    pub fn export_key(&self, private: &mut [u8], private_size: &mut u32,
-            public: &mut [u8], public_size: &mut u32) -> Result<(), i32> {
-        *private_size = private.len() as u32;
-        *public_size = public.len() as u32;
+    pub fn export_key(&self, private: &mut [u8], public: &mut [u8]) -> Result<(), i32> {
+        let mut private_size = private.len() as u32;
+        let mut public_size = public.len() as u32;
         let rc = unsafe {
             ws::wc_ed25519_export_key(&self.ws_key,
-                private.as_mut_ptr(), private_size,
-                public.as_mut_ptr(), public_size)
+                private.as_mut_ptr(), &mut private_size,
+                public.as_mut_ptr(), &mut public_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -151,14 +148,15 @@ impl Ed25519 {
     ///
     /// # Parameters
     ///
-    /// * `public`: Output buffer in which to store the public key.
+    /// * `public`: Output buffer in which to store the public key. The length
+    ///   should be PUB_KEY_SIZE.
     ///
     /// # Returns
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `public` on success or Err(e) containing the wolfSSL library error
     /// code value.
-    pub fn export_public(&self, public: &mut [u8]) -> Result<usize, i32> {
+    pub fn export_public(&self, public: &mut [u8]) -> Result<(), i32> {
         let mut public_size = public.len() as u32;
         let rc = unsafe {
             ws::wc_ed25519_export_public(&self.ws_key, public.as_mut_ptr(),
@@ -167,21 +165,22 @@ impl Ed25519 {
         if rc != 0 {
             return Err(rc);
         }
-        Ok(public_size as usize)
+        Ok(())
     }
 
     /// Export public/private key pair to buffer.
     ///
     /// # Parameters
     ///
-    /// * `keyout`: Output buffer in which to store the key pair.
+    /// * `keyout`: Output buffer in which to store the key pair. The length
+    ///   should be PRV_KEY_SIZE.
     ///
     /// # Returns
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `keyout` on success or Err(e) containing the wolfSSL library error
     /// code value.
-    pub fn export_private(&self, keyout: &mut [u8]) -> Result<usize, i32> {
+    pub fn export_private(&self, keyout: &mut [u8]) -> Result<(), i32> {
         let mut keyout_size = keyout.len() as u32;
         let rc = unsafe {
             ws::wc_ed25519_export_private(&self.ws_key, keyout.as_mut_ptr(),
@@ -190,21 +189,22 @@ impl Ed25519 {
         if rc != 0 {
             return Err(rc);
         }
-        Ok(keyout_size as usize)
+        Ok(())
     }
 
     /// Export private key only to buffer.
     ///
     /// # Parameters
     ///
-    /// * `private`: Output buffer in which to store the private key.
+    /// * `private`: Output buffer in which to store the private key. The
+    ///   length should be KEY_SIZE.
     ///
     /// # Returns
     ///
     /// Returns either Ok(size) containing the number of bytes written to
     /// `private` on success or Err(e) containing the wolfSSL library error
     /// code value.
-    pub fn export_private_only(&self, private: &mut [u8]) -> Result<usize, i32> {
+    pub fn export_private_only(&self, private: &mut [u8]) -> Result<(), i32> {
         let mut private_size = private.len() as u32;
         let rc = unsafe {
             ws::wc_ed25519_export_private_only(&self.ws_key,
@@ -213,7 +213,7 @@ impl Ed25519 {
         if rc != 0 {
             return Err(rc);
         }
-        Ok(private_size as usize)
+        Ok(())
     }
 
     /// Import a public Ed25519 key from buffer.
@@ -299,18 +299,23 @@ impl Ed25519 {
     /// # Parameters
     ///
     /// * `private`: Input buffer containing private key.
-    /// * `public`: Input buffer containing private key.
+    /// * `public`: Optional input buffer containing public key.
     ///
     /// # Returns
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
-    pub fn import_private_key(&mut self, private: &[u8], public: &[u8]) -> Result<(), i32> {
+    pub fn import_private_key(&mut self, private: &[u8], public: Option<&[u8]>) -> Result<(), i32> {
         let private_size = private.len() as u32;
-        let public_size = public.len() as u32;
+        let mut public_ptr: *const u8 = core::ptr::null();
+        let mut public_size = 0u32;
+        if let Some(public) = public {
+            public_ptr = public.as_ptr();
+            public_size = public.len() as u32;
+        }
         let rc = unsafe {
             ws::wc_ed25519_import_private_key(private.as_ptr(), private_size,
-                public.as_ptr(), public_size, &mut self.ws_key)
+                public_ptr, public_size, &mut self.ws_key)
         };
         if rc != 0 {
             return Err(rc);
@@ -326,19 +331,24 @@ impl Ed25519 {
     /// # Parameters
     ///
     /// * `private`: Input buffer containing private key.
-    /// * `public`: Input buffer containing private key.
+    /// * `public`: Optional input buffer containing private key.
     /// * `trusted`: Whether the public key buffer is trusted.
     ///
     /// # Returns
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
-    pub fn import_private_key_ex(&mut self, private: &[u8], public: &[u8], trusted: bool) -> Result<(), i32> {
+    pub fn import_private_key_ex(&mut self, private: &[u8], public: Option<&[u8]>, trusted: bool) -> Result<(), i32> {
         let private_size = private.len() as u32;
-        let public_size = public.len() as u32;
+        let mut public_ptr: *const u8 = core::ptr::null();
+        let mut public_size = 0u32;
+        if let Some(public) = public {
+            public_ptr = public.as_ptr();
+            public_size = public.len() as u32;
+        }
         let rc = unsafe {
             ws::wc_ed25519_import_private_key_ex(private.as_ptr(), private_size,
-                public.as_ptr(), public_size, &mut self.ws_key, if trusted {1} else {0})
+                public_ptr, public_size, &mut self.ws_key, if trusted {1} else {0})
         };
         if rc != 0 {
             return Err(rc);
