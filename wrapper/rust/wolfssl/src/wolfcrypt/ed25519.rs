@@ -93,6 +93,9 @@ impl Ed25519 {
 
     /// Create and initialize a new Ed25519 instance.
     ///
+    /// A key will not be present but can be imported with one of the import
+    /// functions.
+    ///
     /// # Returns
     ///
     /// Returns either Ok(ed25519) containing the Ed25519 struct instance or
@@ -117,9 +120,9 @@ impl Ed25519 {
 
     /// Check the public key is valid.
     ///
-    /// When private key available, check the calculated public key matches.
-    /// When no private key, check Y is in range and an X is able to be
-    /// calculated.
+    /// When a private key is present, check that the calculated public key
+    /// matches it. When a private key is not present, check that Y is in range
+    /// and an X is able to be calculated.
     ///
     /// # Returns
     ///
@@ -147,8 +150,8 @@ impl Ed25519 {
     ///
     /// # Parameters
     ///
-    /// * `private`: Output buffer in which to store the private key. The
-    ///   length should be PRV_KEY_SIZE.
+    /// * `private`: Output buffer in which to store the public/private key
+    ///   pair. The length should be PRV_KEY_SIZE.
     /// * `public`: Output buffer in which to store the public key. The length
     ///   should be PUB_KEY_SIZE.
     ///
@@ -330,7 +333,7 @@ impl Ed25519 {
     ///
     /// This function handles either compressed or uncompressed keys.
     /// The public key is checked that it matches the private key if one is
-    /// already present and trusted is 0.
+    /// already present and trusted is false.
     ///
     /// # Parameters
     ///
@@ -720,7 +723,7 @@ impl Ed25519 {
     /// # Parameters
     ///
     /// * `din`: Data to sign.
-    /// * `context`: Optional buffer containing context for which din is being signed.
+    /// * `context`: Optional buffer containing context for which `din` is being signed.
     /// * `typ`: One of `Ed25519::ED25519`, `Ed25519::ED25519CTX`, or `Ed25519::ED25519PH`.
     /// * `signature`: Output buffer to hold signature.
     ///
