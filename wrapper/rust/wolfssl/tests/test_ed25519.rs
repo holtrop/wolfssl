@@ -7,10 +7,10 @@ fn test_make_public() {
     let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
     let mut private = [0u8; Ed25519::KEY_SIZE];
     ed.export_private_only(&mut private).expect("Error with export_private_only()");
-    let mut ed2 = Ed25519::new().expect("Error with new()");
-    ed2.import_private_only(&private).expect("Error with import_private_only()");
+    let mut ed = Ed25519::new().expect("Error with new()");
+    ed.import_private_only(&private).expect("Error with import_private_only()");
     let mut public = [0u8; Ed25519::KEY_SIZE];
-    ed2.make_public(&mut public).expect("Error with make_public()");
+    ed.make_public(&mut public).expect("Error with make_public()");
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn test_import_export() {
     assert_eq!(public2, public);
 
     let mut private2 = [0u8; Ed25519::PRV_KEY_SIZE];
-    ed.export_private(&mut private2).expect("Error with export_private2()");
+    ed.export_private(&mut private2).expect("Error with export_private()");
     assert_eq!(private2, private);
 
     let mut private_only = [0u8; Ed25519::KEY_SIZE];

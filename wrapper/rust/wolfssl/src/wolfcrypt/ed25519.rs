@@ -64,6 +64,15 @@ impl Ed25519 {
     ///
     /// Returns either Ok(ed25519) containing the Ed25519 struct instance or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// ```
     pub fn generate(rng: &mut RNG) -> Result<Self, i32> {
         let mut ws_key: MaybeUninit<ws::ed25519_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ed25519_init(ws_key.as_mut_ptr()) };
@@ -88,6 +97,13 @@ impl Ed25519 {
     ///
     /// Returns either Ok(ed25519) containing the Ed25519 struct instance or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let ed = Ed25519::new().expect("Error with new()");
+    /// ```
     pub fn new() -> Result<Self, i32> {
         let mut ws_key: MaybeUninit<ws::ed25519_key> = MaybeUninit::uninit();
         let rc = unsafe { ws::wc_ed25519_init(ws_key.as_mut_ptr()) };
@@ -109,6 +125,16 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// ed.check_key().expect("Error with check_key()");
+    /// ```
     pub fn check_key(&mut self) -> Result<(), i32> {
         let rc = unsafe { ws::wc_ed25519_check_key(&mut self.ws_key) };
         if rc != 0 {
@@ -130,6 +156,18 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+    /// ```
     pub fn export_key(&self, private: &mut [u8], public: &mut [u8]) -> Result<(), i32> {
         let mut private_size = private.len() as u32;
         let mut public_size = public.len() as u32;
@@ -156,6 +194,17 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// `public` on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_public(&mut public).expect("Error with export_public()");
+    /// ```
     pub fn export_public(&self, public: &mut [u8]) -> Result<(), i32> {
         let mut public_size = public.len() as u32;
         let rc = unsafe {
@@ -180,6 +229,17 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// `keyout` on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// ed.export_private(&mut private).expect("Error with export_private()");
+    /// ```
     pub fn export_private(&self, keyout: &mut [u8]) -> Result<(), i32> {
         let mut keyout_size = keyout.len() as u32;
         let rc = unsafe {
@@ -204,6 +264,17 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// `private` on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private_only = [0u8; Ed25519::KEY_SIZE];
+    /// ed.export_private_only(&mut private_only).expect("Error with export_private_only()");
+    /// ```
     pub fn export_private_only(&self, private: &mut [u8]) -> Result<(), i32> {
         let mut private_size = private.len() as u32;
         let rc = unsafe {
@@ -230,6 +301,20 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_public(&public).expect("Error with import_public()");
+    /// ```
     pub fn import_public(&mut self, public: &[u8]) -> Result<(), i32> {
         let public_size = public.len() as u32;
         let rc = unsafe {
@@ -256,6 +341,20 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_public_ex(&public, false).expect("Error with import_public_ex()");
+    /// ```
     pub fn import_public_ex(&mut self, public: &[u8], trusted: bool) -> Result<(), i32> {
         let public_size = public.len() as u32;
         let rc = unsafe {
@@ -278,6 +377,19 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private_only = [0u8; Ed25519::KEY_SIZE];
+    /// ed.export_private_only(&mut private_only).expect("Error with export_private_only()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_private_only(&private_only).expect("Error with import_private_only()");
+    /// ```
     pub fn import_private_only(&mut self, private: &[u8]) -> Result<(), i32> {
         let private_size = private.len() as u32;
         let rc = unsafe {
@@ -305,6 +417,20 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_private_key(&private, Some(&public)).expect("Error with import_private_key()");
+    /// ```
     pub fn import_private_key(&mut self, private: &[u8], public: Option<&[u8]>) -> Result<(), i32> {
         let private_size = private.len() as u32;
         let mut public_ptr: *const u8 = core::ptr::null();
@@ -338,6 +464,20 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::PRV_KEY_SIZE];
+    /// let mut public = [0u8; Ed25519::PUB_KEY_SIZE];
+    /// ed.export_key(&mut private, &mut public).expect("Error with export_key()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_private_key_ex(&private, Some(&public), false).expect("Error with import_private_key_ex()");
+    /// ```
     pub fn import_private_key_ex(&mut self, private: &[u8], public: Option<&[u8]>, trusted: bool) -> Result<(), i32> {
         let private_size = private.len() as u32;
         let mut public_ptr: *const u8 = core::ptr::null();
@@ -369,6 +509,21 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let mut private = [0u8; Ed25519::KEY_SIZE];
+    /// ed.export_private_only(&mut private).expect("Error with export_private_only()");
+    /// let mut ed = Ed25519::new().expect("Error with new()");
+    /// ed.import_private_only(&private).expect("Error with import_private_only()");
+    /// let mut public = [0u8; Ed25519::KEY_SIZE];
+    /// ed.make_public(&mut public).expect("Error with make_public()");
+    /// ```
     pub fn make_public(&mut self, pubkey: &mut [u8]) -> Result<(), i32> {
         let pubkey_size = pubkey.len() as u32;
         let rc = unsafe {
@@ -393,6 +548,18 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
+    /// ```
     pub fn sign_msg(&mut self, message: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
         let message_size = message.len() as u32;
         let mut signature_size = signature.len() as u32;
@@ -421,6 +588,19 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ctx(&message, context, &mut signature).expect("Error with sign_msg_ctx()");
+    /// ```
     pub fn sign_msg_ctx(&mut self, message: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
         let message_size = message.len() as u32;
         let context_size = context.len() as u8;
@@ -452,6 +632,28 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let hash = [
+    ///     0xddu8,0xaf,0x35,0xa1,0x93,0x61,0x7a,0xba,
+    ///     0xcc,0x41,0x73,0x49,0xae,0x20,0x41,0x31,
+    ///     0x12,0xe6,0xfa,0x4e,0x89,0xa9,0x7e,0xa2,
+    ///     0x0a,0x9e,0xee,0xe6,0x4b,0x55,0xd3,0x9a,
+    ///     0x21,0x92,0x99,0x2a,0x27,0x4f,0xc1,0xa8,
+    ///     0x36,0xba,0x3c,0x23,0xa3,0xfe,0xeb,0xbd,
+    ///     0x45,0x4d,0x44,0x23,0x64,0x3c,0xe8,0x0e,
+    ///     0x2a,0x9a,0xc9,0x4f,0xa5,0x4c,0xa4,0x9f
+    /// ];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_hash_ph(&hash, context, &mut signature).expect("Error with sign_hash_ph()");
+    /// ```
     pub fn sign_hash_ph(&mut self, hash: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
         let hash_size = hash.len() as u32;
         let context_size = context.len() as u8;
@@ -483,6 +685,19 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ph(&message, context, &mut signature).expect("Error with sign_msg_ph()");
+    /// ```
     pub fn sign_msg_ph(&mut self, message: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
         let message_size = message.len() as u32;
         let context_size = context.len() as u8;
@@ -514,6 +729,19 @@ impl Ed25519 {
     /// Returns either Ok(size) containing the number of bytes written to
     /// signature on success or Err(e) containing the wolfSSL library error
     /// code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ex(&message, Some(context), Ed25519::ED25519, &mut signature).expect("Error with sign_msg_ex()");
+    /// ```
     pub fn sign_msg_ex(&mut self, din: &[u8], context: Option<&[u8]>, typ: u8, signature: &mut [u8]) -> Result<usize, i32> {
         let din_size = din.len() as u32;
         let mut context_ptr: *const u8 = core::ptr::null();
@@ -545,6 +773,20 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
+    /// let signature_valid = ed.verify_msg(&signature, &message).expect("Error with verify_msg()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg(&mut self, signature: &[u8], message: &[u8]) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let message_size = message.len() as u32;
@@ -573,6 +815,21 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = b"Hello!";
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ctx(message, context, &mut signature).expect("Error with sign_msg()");
+    /// let signature_valid = ed.verify_msg_ctx(&signature, message, context).expect("Error with verify_msg_ctx()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_ctx(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let message_size = message.len() as u32;
@@ -605,6 +862,30 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let hash = [
+    ///     0xddu8,0xaf,0x35,0xa1,0x93,0x61,0x7a,0xba,
+    ///     0xcc,0x41,0x73,0x49,0xae,0x20,0x41,0x31,
+    ///     0x12,0xe6,0xfa,0x4e,0x89,0xa9,0x7e,0xa2,
+    ///     0x0a,0x9e,0xee,0xe6,0x4b,0x55,0xd3,0x9a,
+    ///     0x21,0x92,0x99,0x2a,0x27,0x4f,0xc1,0xa8,
+    ///     0x36,0xba,0x3c,0x23,0xa3,0xfe,0xeb,0xbd,
+    ///     0x45,0x4d,0x44,0x23,0x64,0x3c,0xe8,0x0e,
+    ///     0x2a,0x9a,0xc9,0x4f,0xa5,0x4c,0xa4,0x9f
+    /// ];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_hash_ph(&hash, context, &mut signature).expect("Error with sign_hash_ph()");
+    /// let signature_valid = ed.verify_hash_ph(&signature, &hash, context).expect("Error with verify_hash_ph()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_hash_ph(&mut self, signature: &[u8], hash: &[u8], context: &[u8]) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let hash_size = hash.len() as u32;
@@ -636,6 +917,21 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ph(&message, context, &mut signature).expect("Error with sign_msg_ph()");
+    /// let signature_valid = ed.verify_msg_ph(&signature, &message, context).expect("Error with verify_msg_ph()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_ph(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let message_size = message.len() as u32;
@@ -667,6 +963,21 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let context = b"context";
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg_ex(&message, Some(context), Ed25519::ED25519, &mut signature).expect("Error with sign_msg_ex()");
+    /// let signature_valid = ed.verify_msg_ex(&signature, &message, Some(context), Ed25519::ED25519).expect("Error with verify_msg_ex()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_ex(&mut self, signature: &[u8], din: &[u8], context: Option<&[u8]>, typ: u8) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let din_size = din.len() as u32;
@@ -700,6 +1011,23 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
+    /// ed.verify_msg_init(&signature, None, Ed25519::ED25519).expect("Error with verify_msg_init()");
+    /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
+    /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
+    /// let signature_valid = ed.verify_msg_final(&signature).expect("Error with verify_msg_final()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_init(&mut self, signature: &[u8], context: Option<&[u8]>, typ: u8) -> Result<(), i32> {
         let signature_size = signature.len() as u32;
         let mut context_ptr: *const u8 = core::ptr::null();
@@ -728,6 +1056,23 @@ impl Ed25519 {
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
     /// library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
+    /// ed.verify_msg_init(&signature, None, Ed25519::ED25519).expect("Error with verify_msg_init()");
+    /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
+    /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
+    /// let signature_valid = ed.verify_msg_final(&signature).expect("Error with verify_msg_final()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_update(&mut self, din: &[u8]) -> Result<(), i32> {
         let din_size = din.len() as u32;
         let rc = unsafe {
@@ -750,6 +1095,23 @@ impl Ed25519 {
     ///
     /// Returns either Ok(valid) containing whether the signature is valid or
     /// Err(e) containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let mut ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let message = [0x42u8, 33, 55, 66];
+    /// let mut signature = [0u8; Ed25519::SIG_SIZE];
+    /// ed.sign_msg(&message, &mut signature).expect("Error with sign_msg()");
+    /// ed.verify_msg_init(&signature, None, Ed25519::ED25519).expect("Error with verify_msg_init()");
+    /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
+    /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
+    /// let signature_valid = ed.verify_msg_final(&signature).expect("Error with verify_msg_final()");
+    /// assert!(signature_valid);
+    /// ```
     pub fn verify_msg_final(&mut self, signature: &[u8]) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let mut res = 0i32;
@@ -769,6 +1131,17 @@ impl Ed25519 {
     ///
     /// Returns either Ok(size) containing the key size or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let key_size = ed.size().expect("Error with size()");
+    /// assert_eq!(key_size, Ed25519::KEY_SIZE);
+    /// ```
     pub fn size(&self) -> Result<usize, i32> {
         let rc = unsafe { ws::wc_ed25519_size(&self.ws_key) };
         if rc < 0 {
@@ -783,6 +1156,17 @@ impl Ed25519 {
     ///
     /// Returns either Ok(size) containing the key size or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let priv_size = ed.priv_size().expect("Error with priv_size()");
+    /// assert_eq!(priv_size, Ed25519::PRV_KEY_SIZE);
+    /// ```
     pub fn priv_size(&self) -> Result<usize, i32> {
         let rc = unsafe { ws::wc_ed25519_priv_size(&self.ws_key) };
         if rc < 0 {
@@ -797,6 +1181,17 @@ impl Ed25519 {
     ///
     /// Returns either Ok(size) containing the key size or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let pub_size = ed.pub_size().expect("Error with pub_size()");
+    /// assert_eq!(pub_size, Ed25519::PUB_KEY_SIZE);
+    /// ```
     pub fn pub_size(&self) -> Result<usize, i32> {
         let rc = unsafe { ws::wc_ed25519_pub_size(&self.ws_key) };
         if rc < 0 {
@@ -811,6 +1206,17 @@ impl Ed25519 {
     ///
     /// Returns either Ok(size) containing the key size or Err(e)
     /// containing the wolfSSL library error code value.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ed25519::Ed25519;
+    /// let mut rng = RNG::new().expect("Error creating RNG");
+    /// let ed = Ed25519::generate(&mut rng).expect("Error with generate()");
+    /// let sig_size = ed.sig_size().expect("Error with sig_size()");
+    /// assert_eq!(sig_size, Ed25519::SIG_SIZE);
+    /// ```
     pub fn sig_size(&self) -> Result<usize, i32> {
         let rc = unsafe { ws::wc_ed25519_sig_size(&self.ws_key) };
         if rc < 0 {
