@@ -66,10 +66,10 @@ fn test_sign_verify() {
     ed.import_private_key(&private_key, Some(&public_key)).expect("Error with import_private_key()");
 
     let mut signature = [0u8; Ed448::SIG_SIZE];
-    ed.sign_msg(&message, &context, &mut signature).expect("Error with sign_msg()");
+    ed.sign_msg(&message, Some(&context), &mut signature).expect("Error with sign_msg()");
     assert_eq!(signature, expected_signature);
 
-    let signature_valid = ed.verify_msg(&signature, &message, &context).expect("Error with verify_msg()");
+    let signature_valid = ed.verify_msg(&signature, &message, Some(&context)).expect("Error with verify_msg()");
     assert!(signature_valid);
 
     let mut signature = [0u8; Ed448::SIG_SIZE];
@@ -141,17 +141,17 @@ fn test_ph_sign_verify() {
     ed.import_private_key(&private_key, Some(&public_key)).expect("Error with import_private_key()");
 
     let mut signature = [0u8; Ed448::SIG_SIZE];
-    ed.sign_msg_ph(&message, &context, &mut signature).expect("Error with sign_msg_ph()");
+    ed.sign_msg_ph(&message, Some(&context), &mut signature).expect("Error with sign_msg_ph()");
     assert_eq!(signature, expected_signature);
 
-    let signature_valid = ed.verify_msg_ph(&signature, &message, &context).expect("Error with verify_msg_ph()");
+    let signature_valid = ed.verify_msg_ph(&signature, &message, Some(&context)).expect("Error with verify_msg_ph()");
     assert!(signature_valid);
 
     let mut signature = [0u8; Ed448::SIG_SIZE];
-    ed.sign_hash_ph(&hash, &context, &mut signature).expect("Error with sign_hash_ph()");
+    ed.sign_hash_ph(&hash, Some(&context), &mut signature).expect("Error with sign_hash_ph()");
     assert_eq!(signature, expected_signature);
 
-    let signature_valid = ed.verify_hash_ph(&signature, &hash, &context).expect("Error with verify_hash_ph()");
+    let signature_valid = ed.verify_hash_ph(&signature, &hash, Some(&context)).expect("Error with verify_hash_ph()");
     assert!(signature_valid);
 }
 

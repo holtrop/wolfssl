@@ -538,14 +538,14 @@ impl Ed448 {
         Ok(())
     }
 
-    /// Sign a message with context using Ed448 key.
+    /// Sign a message with optional context using Ed448 key.
     ///
     /// The context is part of the data signed.
     ///
     /// # Parameters
     ///
     /// * `message`: Message to sign.
-    /// * `context`: Buffer containing context for which message is being signed.
+    /// * `context`: Optional buffer containing context for which message is being signed.
     /// * `signature`: Output buffer to hold signature.
     ///
     /// # Returns
@@ -564,16 +564,21 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg(&message, context, &mut signature).expect("Error with sign_msg()");
+    /// ed.sign_msg(&message, Some(context), &mut signature).expect("Error with sign_msg()");
     /// ```
-    pub fn sign_msg(&mut self, message: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
+    pub fn sign_msg(&mut self, message: &[u8], context: Option<&[u8]>, signature: &mut [u8]) -> Result<usize, i32> {
         let message_size = message.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut signature_size = signature.len() as u32;
         let rc = unsafe {
             ws::wc_ed448_sign_msg(message.as_ptr(), message_size,
                 signature.as_mut_ptr(), &mut signature_size, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -581,7 +586,7 @@ impl Ed448 {
         Ok(signature_size as usize)
     }
 
-    /// Sign a message digest with context using Ed448 key.
+    /// Sign a message digest with optional context using Ed448 key.
     ///
     /// The context is part of the data signed.
     /// The message is pre-hashed before signature calculation.
@@ -589,7 +594,7 @@ impl Ed448 {
     /// # Parameters
     ///
     /// * `hash`: Message digest to sign.
-    /// * `context`: Buffer containing context for which hash is being signed.
+    /// * `context`: Optional buffer containing context for which hash is being signed.
     /// * `signature`: Output buffer to hold signature.
     ///
     /// # Returns
@@ -617,16 +622,21 @@ impl Ed448 {
     /// ];
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_hash_ph(&hash, context, &mut signature).expect("Error with sign_hash_ph()");
+    /// ed.sign_hash_ph(&hash, Some(context), &mut signature).expect("Error with sign_hash_ph()");
     /// ```
-    pub fn sign_hash_ph(&mut self, hash: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
+    pub fn sign_hash_ph(&mut self, hash: &[u8], context: Option<&[u8]>, signature: &mut [u8]) -> Result<usize, i32> {
         let hash_size = hash.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut signature_size = signature.len() as u32;
         let rc = unsafe {
             ws::wc_ed448ph_sign_hash(hash.as_ptr(), hash_size,
                 signature.as_mut_ptr(), &mut signature_size, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -634,7 +644,7 @@ impl Ed448 {
         Ok(signature_size as usize)
     }
 
-    /// Sign a message with context using Ed448 key.
+    /// Sign a message with optional context using Ed448 key.
     ///
     /// The context is part of the data signed.
     /// The message is pre-hashed before signature calculation.
@@ -642,7 +652,7 @@ impl Ed448 {
     /// # Parameters
     ///
     /// * `message`: Message digest to sign.
-    /// * `context`: Buffer containing context for which message is being signed.
+    /// * `context`: Optional buffer containing context for which message is being signed.
     /// * `signature`: Output buffer to hold signature.
     ///
     /// # Returns
@@ -661,16 +671,21 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg_ph(&message, context, &mut signature).expect("Error with sign_msg_ph()");
+    /// ed.sign_msg_ph(&message, Some(context), &mut signature).expect("Error with sign_msg_ph()");
     /// ```
-    pub fn sign_msg_ph(&mut self, message: &[u8], context: &[u8], signature: &mut [u8]) -> Result<usize, i32> {
+    pub fn sign_msg_ph(&mut self, message: &[u8], context: Option<&[u8]>, signature: &mut [u8]) -> Result<usize, i32> {
         let message_size = message.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut signature_size = signature.len() as u32;
         let rc = unsafe {
             ws::wc_ed448ph_sign_msg(message.as_ptr(), message_size,
                 signature.as_mut_ptr(), &mut signature_size, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -727,7 +742,7 @@ impl Ed448 {
         Ok(signature_size as usize)
     }
 
-    /// Verify the Ed448 signature of a message and context to ensure authenticity.
+    /// Verify the Ed448 signature of a message and optional context to ensure authenticity.
     ///
     /// The context is included as part of the data verified.
     ///
@@ -735,7 +750,7 @@ impl Ed448 {
     ///
     /// * `signature`: Signature to verify.
     /// * `message`: Message to verify the signature of.
-    /// * `context`: Buffer containing context for which the message was signed.
+    /// * `context`: Optional buffer containing context for which the message was signed.
     ///
     /// # Returns
     ///
@@ -752,19 +767,24 @@ impl Ed448 {
     /// let message = b"Hello!";
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg(message, context, &mut signature).expect("Error with sign_msg()");
-    /// let signature_valid = ed.verify_msg(&signature, message, context).expect("Error with verify_msg()");
+    /// ed.sign_msg(message, Some(context), &mut signature).expect("Error with sign_msg()");
+    /// let signature_valid = ed.verify_msg(&signature, message, Some(context)).expect("Error with verify_msg()");
     /// assert!(signature_valid);
     /// ```
-    pub fn verify_msg(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
+    pub fn verify_msg(&mut self, signature: &[u8], message: &[u8], context: Option<&[u8]>) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let message_size = message.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut res = 0i32;
         let rc = unsafe {
             ws::wc_ed448_verify_msg(signature.as_ptr(), signature_size,
                 message.as_ptr(), message_size, &mut res, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -772,7 +792,7 @@ impl Ed448 {
         Ok(res == 1)
     }
 
-    /// Verify the Ed448 signature of a message digest and context to ensure authenticity.
+    /// Verify the Ed448 signature of a message digest and optional context to ensure authenticity.
     ///
     /// The context is included as part of the data verified.
     /// The hash algorithm used to create message digest must be SHA-512.
@@ -782,7 +802,7 @@ impl Ed448 {
     ///
     /// * `signature`: Signature to verify.
     /// * `hash`: Message to verify the signature of.
-    /// * `context`: Buffer containing context for which the hash was signed.
+    /// * `context`: Optional buffer containing context for which the hash was signed.
     ///
     /// # Returns
     ///
@@ -808,19 +828,24 @@ impl Ed448 {
     /// ];
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_hash_ph(&hash, context, &mut signature).expect("Error with sign_hash_ph()");
-    /// let signature_valid = ed.verify_hash_ph(&signature, &hash, context).expect("Error with verify_hash_ph()");
+    /// ed.sign_hash_ph(&hash, Some(context), &mut signature).expect("Error with sign_hash_ph()");
+    /// let signature_valid = ed.verify_hash_ph(&signature, &hash, Some(context)).expect("Error with verify_hash_ph()");
     /// assert!(signature_valid);
     /// ```
-    pub fn verify_hash_ph(&mut self, signature: &[u8], hash: &[u8], context: &[u8]) -> Result<bool, i32> {
+    pub fn verify_hash_ph(&mut self, signature: &[u8], hash: &[u8], context: Option<&[u8]>) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let hash_size = hash.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut res = 0i32;
         let rc = unsafe {
             ws::wc_ed448ph_verify_hash(signature.as_ptr(), signature_size,
                 hash.as_ptr(), hash_size, &mut res, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -828,7 +853,7 @@ impl Ed448 {
         Ok(res == 1)
     }
 
-    /// Verify the Ed448 signature of a message and context to ensure authenticity.
+    /// Verify the Ed448 signature of a message and optional context to ensure authenticity.
     ///
     /// The context is included as part of the data verified.
     /// The message is pre-hashed before verification.
@@ -837,7 +862,7 @@ impl Ed448 {
     ///
     /// * `signature`: Signature to verify.
     /// * `message`: Message to verify the signature of.
-    /// * `context`: Buffer containing context for which the message was signed.
+    /// * `context`: Optional buffer containing context for which the message was signed.
     ///
     /// # Returns
     ///
@@ -854,19 +879,24 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = b"context";
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg_ph(&message, context, &mut signature).expect("Error with sign_msg_ph()");
-    /// let signature_valid = ed.verify_msg_ph(&signature, &message, context).expect("Error with verify_msg_ph()");
+    /// ed.sign_msg_ph(&message, Some(context), &mut signature).expect("Error with sign_msg_ph()");
+    /// let signature_valid = ed.verify_msg_ph(&signature, &message, Some(context)).expect("Error with verify_msg_ph()");
     /// assert!(signature_valid);
     /// ```
-    pub fn verify_msg_ph(&mut self, signature: &[u8], message: &[u8], context: &[u8]) -> Result<bool, i32> {
+    pub fn verify_msg_ph(&mut self, signature: &[u8], message: &[u8], context: Option<&[u8]>) -> Result<bool, i32> {
         let signature_size = signature.len() as u32;
         let message_size = message.len() as u32;
-        let context_size = context.len() as u8;
+        let mut context_ptr: *const u8 = core::ptr::null();
+        let mut context_size = 0u8;
+        if let Some(context) = context {
+            context_ptr = context.as_ptr();
+            context_size = context.len() as u8;
+        }
         let mut res = 0i32;
         let rc = unsafe {
             ws::wc_ed448ph_verify_msg(signature.as_ptr(), signature_size,
                 message.as_ptr(), message_size, &mut res, &mut self.ws_key,
-                context.as_ptr(), context_size)
+                context_ptr, context_size)
         };
         if rc != 0 {
             return Err(rc);
@@ -874,7 +904,7 @@ impl Ed448 {
         Ok(res == 1)
     }
 
-    /// Verify the Ed448 signature of a message and context to ensure authenticity.
+    /// Verify the Ed448 signature of a message and optional context to ensure authenticity.
     ///
     /// The context is included as part of the data verified.
     ///
@@ -948,7 +978,7 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = [0x42u8, 1, 2, 3];
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg(&message, &context, &mut signature).expect("Error with sign_msg()");
+    /// ed.sign_msg(&message, Some(&context), &mut signature).expect("Error with sign_msg()");
     /// ed.verify_msg_init(&signature, Some(&context), Ed448::ED448).expect("Error with verify_msg_init()");
     /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
     /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
@@ -994,7 +1024,7 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = [0x42u8, 1, 2, 3];
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg(&message, &context, &mut signature).expect("Error with sign_msg()");
+    /// ed.sign_msg(&message, Some(&context), &mut signature).expect("Error with sign_msg()");
     /// ed.verify_msg_init(&signature, Some(&context), Ed448::ED448).expect("Error with verify_msg_init()");
     /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
     /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
@@ -1034,7 +1064,7 @@ impl Ed448 {
     /// let message = [0x42u8, 33, 55, 66];
     /// let context = [0x42u8, 1, 2, 3];
     /// let mut signature = [0u8; Ed448::SIG_SIZE];
-    /// ed.sign_msg(&message, &context, &mut signature).expect("Error with sign_msg()");
+    /// ed.sign_msg(&message, Some(&context), &mut signature).expect("Error with sign_msg()");
     /// ed.verify_msg_init(&signature, Some(&context), Ed448::ED448).expect("Error with verify_msg_init()");
     /// ed.verify_msg_update(&message[0..2]).expect("Error with verify_msg_update()");
     /// ed.verify_msg_update(&message[2..4]).expect("Error with verify_msg_update()");
