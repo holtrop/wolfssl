@@ -57,10 +57,10 @@ fn test_sign_verify() {
     assert!(signature_valid);
 
     let mut signature = [0u8; Ed25519::SIG_SIZE];
-    ed.sign_msg_ex(&message, None, Ed25519::ED25519, &mut signature).expect("Error with sign_msg()");
+    ed.sign_msg_ex(&message, None, Ed25519::ED25519, &mut signature).expect("Error with sign_msg_ex()");
     assert_eq!(signature, expected_signature);
 
-    let signature_valid = ed.verify_msg_ex(&signature, &message, None, Ed25519::ED25519).expect("Error with verify_msg()");
+    let signature_valid = ed.verify_msg_ex(&signature, &message, None, Ed25519::ED25519).expect("Error with verify_msg_ex()");
     assert!(signature_valid);
 
     ed.verify_msg_init(&signature, None, Ed25519::ED25519).expect("Error with verify_msg_init()");
