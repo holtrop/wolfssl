@@ -337,6 +337,11 @@ impl SHA256 {
 
     /// Build a new SHA256 instance.
     ///
+    /// # Parameters
+    ///
+    /// * `heap`: Optional heap hint.
+    /// * `dev_id` Optional device ID to use with crypto callbacks or async hardware.
+    ///
     /// # Returns
     ///
     /// Returns either Ok(sha) containing the SHA256 struct instance or Err(e)
@@ -346,11 +351,19 @@ impl SHA256 {
     ///
     /// ```rust
     /// use wolfssl::wolfcrypt::sha::SHA256;
-    /// let sha = SHA256::new().expect("Error with new()");
+    /// let sha = SHA256::new(None, None).expect("Error with new()");
     /// ```
-    pub fn new() -> Result<Self, i32> {
+    pub fn new(heap: Option<*mut std::os::raw::c_void>, dev_id: Option<i32>) -> Result<Self, i32> {
         let mut wc_sha256: MaybeUninit<ws::wc_Sha256> = MaybeUninit::uninit();
-        let rc = unsafe { ws::wc_InitSha256(wc_sha256.as_mut_ptr()) };
+        let heap = match heap {
+            Some(heap) => heap,
+            None => core::ptr::null_mut(),
+        };
+        let dev_id = match dev_id {
+            Some(dev_id) => dev_id,
+            None => ws::INVALID_DEVID,
+        };
+        let rc = unsafe { ws::wc_InitSha256_ex(wc_sha256.as_mut_ptr(), heap, dev_id) };
         if rc != 0 {
             return Err(rc);
         }
@@ -364,6 +377,11 @@ impl SHA256 {
     /// This does not need to be called after `new()`, but should be called
     /// after a hash calculation to prepare for a new calculation.
     ///
+    /// # Parameters
+    ///
+    /// * `heap`: Optional heap hint.
+    /// * `dev_id` Optional device ID to use with crypto callbacks or async hardware.
+    ///
     /// # Returns
     ///
     /// Returns either Ok(()) on success or Err(e) containing the wolfSSL
@@ -373,11 +391,19 @@ impl SHA256 {
     ///
     /// ```rust
     /// use wolfssl::wolfcrypt::sha::SHA256;
-    /// let mut sha = SHA256::new().expect("Error with new()");
-    /// sha.init().expect("Error with init()");
+    /// let mut sha = SHA256::new(None, None).expect("Error with new()");
+    /// sha.init(None, None).expect("Error with init()");
     /// ```
-    pub fn init(&mut self) -> Result<(), i32> {
-        let rc = unsafe { ws::wc_InitSha256(&mut self.wc_sha256) };
+    pub fn init(&mut self, heap: Option<*mut std::os::raw::c_void>, dev_id: Option<i32>) -> Result<(), i32> {
+        let heap = match heap {
+            Some(heap) => heap,
+            None => core::ptr::null_mut(),
+        };
+        let dev_id = match dev_id {
+            Some(dev_id) => dev_id,
+            None => ws::INVALID_DEVID,
+        };
+        let rc = unsafe { ws::wc_InitSha256_ex(&mut self.wc_sha256, heap, dev_id) };
         if rc != 0 {
             return Err(rc);
         }
@@ -399,7 +425,7 @@ impl SHA256 {
     ///
     /// ```rust
     /// use wolfssl::wolfcrypt::sha::SHA256;
-    /// let mut sha = SHA256::new().expect("Error with new()");
+    /// let mut sha = SHA256::new(None, None).expect("Error with new()");
     /// sha.update(b"input").expect("Error with update()");
     /// ```
     pub fn update(&mut self, data: &[u8]) -> Result<(), i32> {
@@ -429,7 +455,7 @@ impl SHA256 {
     ///
     /// ```rust
     /// use wolfssl::wolfcrypt::sha::SHA256;
-    /// let mut sha = SHA256::new().expect("Error with new()");
+    /// let mut sha = SHA256::new(None, None).expect("Error with new()");
     /// sha.update(b"input").expect("Error with update()");
     /// let mut hash = [0u8; SHA256::DIGEST_SIZE];
     /// sha.finalize(&mut hash).expect("Error with finalize()");
