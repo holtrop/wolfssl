@@ -37,6 +37,7 @@ use crate::wolfcrypt::random::RNG;
 /// Rust wrapper for wolfSSL `ecc_point` object.
 pub struct ECCPoint {
     wc_ecc_point: *mut ws::ecc_point,
+    heap: *mut std::os::raw::c_void,
 }
 
 impl ECCPoint {
@@ -46,21 +47,41 @@ impl ECCPoint {
     ///
     /// * `din`: DER-formatted buffer.
     /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
+    /// * `heap`: Optional heap hint.
     ///
     /// # Returns
     ///
     /// Returns either Ok(ECCPoint) containing the ECCPoint struct instance or
     /// Err(e) containing the wolfSSL library error code value.
-    pub fn import_der(din: &[u8], curve_id: i32) -> Result<Self, i32> {
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use wolfssl::wolfcrypt::random::RNG;
+    /// use wolfssl::wolfcrypt::ecc::{ECC,ECCPoint};
+    /// let mut rng = RNG::new().expect("Failed to create RNG");
+    /// let curve_id = ECC::SECP256R1;
+    /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
+    /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
+    /// let mut der = [0u8; 128];
+    /// let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
+    /// ECCPoint::import_der(&der[0..size], curve_id, None).expect("Error with import_der()");
+    /// ```
+    pub fn import_der(din: &[u8], curve_id: i32, heap: Option<*mut std::os::raw::c_void>) -> Result<Self, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
         if curve_idx < 0 {
             return Err(curve_idx);
         }
-        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        let heap = match heap {
+            Some(heap) => heap,
+            None => core::ptr::null_mut(),
+        };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point_h(heap) };
         if wc_ecc_point.is_null() {
             return Err(ws::wolfCrypt_ErrorCodes_MEMORY_E);
         }
-        let eccpoint = ECCPoint { wc_ecc_point };
+        let eccpoint = ECCPoint { wc_ecc_point, heap };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der(din.as_ptr(), din_size, curve_idx,
@@ -80,6 +101,7 @@ impl ECCPoint {
     /// * `curve_id`: Curve ID, e.g. ECC::SECP256R1.
     /// * `short_key_size`: if shortKeySize != 0 then key size is always
     ///   (din.len() - 1) / 2.
+    /// * `heap`: Optional heap hint.
     ///
     /// # Returns
     ///
@@ -95,21 +117,25 @@ impl ECCPoint {
     /// let curve_id = ECC::SECP256R1;
     /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
     /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
-    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// let mut der = [0u8; 128];
     /// let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
-    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
+    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1, None).expect("Error with import_der_ex()");
     /// ```
-    pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32) -> Result<Self, i32> {
+    pub fn import_der_ex(din: &[u8], curve_id: i32, short_key_size: i32, heap: Option<*mut std::os::raw::c_void>) -> Result<Self, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
         if curve_idx < 0 {
             return Err(curve_idx);
         }
-        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        let heap = match heap {
+            Some(heap) => heap,
+            None => core::ptr::null_mut(),
+        };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point_h(heap) };
         if wc_ecc_point.is_null() {
             return Err(ws::wolfCrypt_ErrorCodes_MEMORY_E);
         }
-        let eccpoint = ECCPoint { wc_ecc_point };
+        let eccpoint = ECCPoint { wc_ecc_point, heap };
         let din_size = din.len() as u32;
         let rc = unsafe {
             ws::wc_ecc_import_point_der_ex(din.as_ptr(), din_size, curve_idx,
@@ -142,11 +168,11 @@ impl ECCPoint {
     /// let curve_id = ECC::SECP256R1;
     /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
     /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
-    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// let mut der = [0u8; 128];
     /// let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
     /// assert!(size > 0 && size <= der.len());
-    /// ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+    /// ECCPoint::import_der(&der[0..size], curve_id, None).expect("Error with import_der()");
     /// ```
     pub fn export_der(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
@@ -185,10 +211,10 @@ impl ECCPoint {
     /// let curve_id = ECC::SECP256R1;
     /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
     /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
-    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// let mut der = [0u8; 128];
     /// let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
-    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
+    /// ECCPoint::import_der_ex(&der[0..size], curve_id, 1, None).expect("Error with import_der_ex()");
     /// ```
     pub fn export_der_compressed(&self, dout: &mut [u8], curve_id: i32) -> Result<usize, i32> {
         let curve_idx = unsafe { ws::wc_ecc_get_curve_idx(curve_id) };
@@ -215,7 +241,7 @@ impl ECCPoint {
     /// use wolfssl::wolfcrypt::ecc::ECC;
     /// let mut rng = RNG::new().expect("Failed to create RNG");
     /// let mut ecc = ECC::generate(32, &mut rng).expect("Error with generate()");
-    /// let mut ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let mut ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// ecc_point.forcezero();
     /// ```
     pub fn forcezero(&mut self) {
@@ -226,13 +252,13 @@ impl ECCPoint {
 impl Drop for ECCPoint {
     /// Safely free the underlying wolfSSL ecc_point context.
     ///
-    /// This calls the `wc_ecc_del_point()` wolfssl library function.
+    /// This calls the `wc_ecc_del_point_h()` wolfssl library function.
     ///
     /// The Rust Drop trait guarantees that this method is called when the
     /// ECCPoint struct instance goes out of scope, automatically cleaning up
     /// resources and preventing memory leaks.
     fn drop(&mut self) {
-        unsafe { ws::wc_ecc_del_point(self.wc_ecc_point); }
+        unsafe { ws::wc_ecc_del_point_h(self.wc_ecc_point, self.heap); }
     }
 }
 
@@ -465,11 +491,11 @@ impl ECC {
     /// let curve_id = ECC::SECP256R1;
     /// let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
     /// let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
-    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// let ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// let mut der = [0u8; 128];
     /// let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
     /// assert!(size > 0 && size <= der.len());
-    /// ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+    /// ECCPoint::import_der(&der[0..size], curve_id, None).expect("Error with import_der()");
     /// ```
     pub fn import_der(der: &[u8]) -> Result<Self, i32> {
         let mut wc_ecc_key: MaybeUninit<ws::ecc_key> = MaybeUninit::uninit();
@@ -1355,6 +1381,7 @@ impl ECC {
     ///
     /// * `rng`: RNG struct used to blind the private key value used in the
     ///   computation.
+    /// * `heap`: Optional heap hint.
     ///
     /// # Returns
     ///
@@ -1371,18 +1398,22 @@ impl ECC {
     /// let key_path = "../../../certs/ecc-client-key.der";
     /// let der: Vec<u8> = fs::read(key_path).expect("Error reading key file");
     /// let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
-    /// ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    /// ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     /// ```
-    pub fn make_pub_to_point(&mut self, rng: Option<&mut RNG>) -> Result<ECCPoint, i32> {
+    pub fn make_pub_to_point(&mut self, rng: Option<&mut RNG>, heap: Option<*mut std::os::raw::c_void>) -> Result<ECCPoint, i32> {
         let rng_ptr = match rng {
             Some(rng) => &mut rng.wc_rng,
             None => core::ptr::null_mut(),
         };
-        let wc_ecc_point = unsafe { ws::wc_ecc_new_point() };
+        let heap = match heap {
+            Some(heap) => heap,
+            None => core::ptr::null_mut(),
+        };
+        let wc_ecc_point = unsafe { ws::wc_ecc_new_point_h(heap) };
         if wc_ecc_point.is_null() {
             return Err(ws::wolfCrypt_ErrorCodes_MEMORY_E);
         }
-        let ecc_point = ECCPoint { wc_ecc_point };
+        let ecc_point = ECCPoint { wc_ecc_point, heap };
         let rc = unsafe {
             ws::wc_ecc_make_pub_ex(&mut self.wc_ecc_key, wc_ecc_point, rng_ptr)
         };
@@ -1491,7 +1522,7 @@ impl ECC {
     /// let mut rng = RNG::new().expect("Failed to create RNG");
     /// let mut ecc0 = ECC::generate(32, &mut rng).expect("Error with generate()");
     /// let mut ecc1 = ECC::generate(32, &mut rng).expect("Error with generate()");
-    /// let ecc1_point = ecc1.make_pub_to_point(None).expect("Error with make_pub_to_point()");
+    /// let ecc1_point = ecc1.make_pub_to_point(None, None).expect("Error with make_pub_to_point()");
     /// let mut ss0 = [0u8; 128];
     /// let mut ss1 = [0u8; 128];
     /// let ss0_size = ecc0.shared_secret_ex(&ecc1_point, &mut ss0).expect("Error with shared_secret_ex()");

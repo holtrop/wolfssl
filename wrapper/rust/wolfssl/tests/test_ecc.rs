@@ -118,7 +118,7 @@ fn test_ecc_shared_secret() {
     assert_eq!(*ss0, *ss1);
 
     let mut ss0 = [0u8; 128];
-    let ecc_point = ecc1.make_pub_to_point(None).expect("Error with make_pub_to_point()");
+    let ecc_point = ecc1.make_pub_to_point(None, None).expect("Error with make_pub_to_point()");
     let ss0_size = ecc0.shared_secret_ex(&ecc_point, &mut ss0).expect("Error with shared_secret_ex()");
     let ss0 = &ss0[0..ss0_size];
     assert_eq!(*ss0, *ss1);
@@ -237,8 +237,8 @@ fn test_ecc_make_pub() {
     let mut ecc = ECC::import_der(&der).expect("Error with import_der()");
     ecc.make_pub(Some(&mut rng)).expect("Error with make_pub()");
     ecc.make_pub(None).expect("Error with make_pub()");
-    ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
-    ecc.make_pub_to_point(None).expect("Error with make_pub_to_point()");
+    ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
+    ecc.make_pub_to_point(None, None).expect("Error with make_pub_to_point()");
 }
 
 #[test]
@@ -247,13 +247,13 @@ fn test_ecc_point() {
     let curve_id = ECC::SECP256R1;
     let curve_size = ECC::get_curve_size_from_id(curve_id).expect("Error with get_curve_size_from_id()");
     let mut ecc = ECC::generate_ex(curve_size, &mut rng, curve_id).expect("Error with generate()");
-    let mut ecc_point = ecc.make_pub_to_point(Some(&mut rng)).expect("Error with make_pub_to_point()");
+    let mut ecc_point = ecc.make_pub_to_point(Some(&mut rng), None).expect("Error with make_pub_to_point()");
     let mut der = [0u8; 128];
     let size = ecc_point.export_der(&mut der, curve_id).expect("Error with export_der()");
     assert!(size > 0 && size <= der.len());
-    ECCPoint::import_der(&der[0..size], curve_id).expect("Error with import_der()");
+    ECCPoint::import_der(&der[0..size], curve_id, None).expect("Error with import_der()");
     let size = ecc_point.export_der_compressed(&mut der, curve_id).expect("Error with export_der_compressed()");
-    ECCPoint::import_der_ex(&der[0..size], curve_id, 1).expect("Error with import_der_ex()");
+    ECCPoint::import_der_ex(&der[0..size], curve_id, 1, None).expect("Error with import_der_ex()");
     ecc_point.forcezero();
 }
 
