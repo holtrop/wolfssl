@@ -93,9 +93,9 @@ fn test_sha384() {
 
 #[test]
 fn test_sha512() {
-    let mut sha = SHA512::new().expect("Error with new()");
+    let mut sha = SHA512::new(None, None).expect("Error with new()");
     fn test1(sha: &mut SHA512, input: &[u8], expected_hash: &[u8]) {
-        sha.init().expect("Error with init()");
+        sha.init(None, None).expect("Error with init()");
         sha.update(input).expect("Error with update()");
         let mut hash = [0u8; SHA512::DIGEST_SIZE];
         sha.finalize(&mut hash).expect("Error with finalize()");
