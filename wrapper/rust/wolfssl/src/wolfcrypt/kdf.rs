@@ -72,17 +72,7 @@ pub const SRTP_LABEL_HDR_SALT: u8 = ws::WC_SRTP_LABEL_HDR_SALT as u8;
 /// assert_eq!(keyout, expected_key);
 /// ```
 pub fn pbkdf2(password: &[u8], salt: &[u8], iterations: i32, typ: i32, out: &mut [u8]) -> Result<(), i32> {
-    let password_size = password.len() as i32;
-    let salt_size = salt.len() as i32;
-    let out_size = out.len() as i32;
-    let rc = unsafe {
-        ws::wc_PBKDF2(out.as_mut_ptr(), password.as_ptr(), password_size,
-            salt.as_ptr(), salt_size, iterations, out_size, typ)
-    };
-    if rc != 0 {
-        return Err(rc);
-    }
-    Ok(())
+    pbkdf2_ex(password, salt, iterations, typ, None, None, out)
 }
 
 /// Implement Password Based Key Derivation Function 2 (PBKDF2) converting an
@@ -187,17 +177,7 @@ pub fn pbkdf2_ex(password: &[u8], salt: &[u8], iterations: i32, typ: i32, heap: 
 /// assert_eq!(keyout, expected_key);
 /// ```
 pub fn pkcs12_pbkdf(password: &[u8], salt: &[u8], iterations: i32, typ: i32, id: i32, out: &mut [u8]) -> Result<(), i32> {
-    let password_size = password.len() as i32;
-    let salt_size = salt.len() as i32;
-    let out_size = out.len() as i32;
-    let rc = unsafe {
-        ws::wc_PKCS12_PBKDF(out.as_mut_ptr(), password.as_ptr(), password_size,
-            salt.as_ptr(), salt_size, iterations, out_size, typ, id)
-    };
-    if rc != 0 {
-        return Err(rc);
-    }
-    Ok(())
+    pkcs12_pbkdf_ex(password, salt, iterations, typ, id, None, out)
 }
 
 /// This function implements the Password Based Key Derivation Function
@@ -289,32 +269,7 @@ pub fn pkcs12_pbkdf_ex(password: &[u8], salt: &[u8], iterations: i32, typ: i32, 
 /// tls13_hkdf_extract(HMAC::TYPE_SHA256, None, None, &mut secret).expect("Error with tls13_hkdf_extract()");
 /// ```
 pub fn tls13_hkdf_extract(typ: i32, salt: Option<&[u8]>, key: Option<&mut [u8]>, out: &mut [u8]) -> Result<(), i32> {
-    let mut salt_ptr = core::ptr::null();
-    let mut salt_size = 0u32;
-    if let Some(salt) = salt {
-        salt_ptr = salt.as_ptr();
-        salt_size = salt.len() as u32;
-    }
-    let mut ikm_buf = [0u8; ws::WC_MAX_DIGEST_SIZE as usize];
-    let mut ikm_ptr = ikm_buf.as_mut_ptr();
-    let mut ikm_size = 0u32;
-    if let Some(key) = key {
-        if key.len() > 0 {
-            ikm_ptr = key.as_mut_ptr();
-            ikm_size = key.len() as u32;
-        }
-    }
-    if out.len() != HMAC::get_hmac_size_by_type(typ)? {
-        return Err(ws::wolfCrypt_ErrorCodes_BUFFER_E);
-    }
-    let rc = unsafe {
-        ws::wc_Tls13_HKDF_Extract(out.as_mut_ptr(), salt_ptr, salt_size,
-            ikm_ptr, ikm_size, typ)
-    };
-    if rc != 0 {
-        return Err(rc);
-    }
-    Ok(())
+    tls13_hkdf_extract_ex(typ, salt, key, out, None, None)
 }
 
 /// Perform RFC 5869 HKDF-Extract operation for TLS v1.3 key derivation (with
@@ -429,20 +384,7 @@ pub fn tls13_hkdf_extract_ex(typ: i32, salt: Option<&[u8]>, key: Option<&mut [u8
 ///     &hash_hello1, &mut expand_out).expect("Error with tls13_hkdf_expand_label()");
 /// ```
 pub fn tls13_hkdf_expand_label(typ: i32, key: &[u8], protocol: &[u8], label: &[u8], info: &[u8], out: &mut [u8]) -> Result<(), i32> {
-    let key_size = key.len() as u32;
-    let protocol_size = protocol.len() as u32;
-    let label_size = label.len() as u32;
-    let info_size = info.len() as u32;
-    let out_size = out.len() as u32;
-    let rc = unsafe {
-        ws::wc_Tls13_HKDF_Expand_Label(out.as_mut_ptr(), out_size,
-            key.as_ptr(), key_size, protocol.as_ptr(), protocol_size,
-            label.as_ptr(), label_size, info.as_ptr(), info_size, typ)
-    };
-    if rc != 0 {
-        return Err(rc);
-    }
-    Ok(())
+    tls13_hkdf_expand_label_ex(typ, key, protocol, label, info, out, None, None)
 }
 
 /// Perform RFC 5869 HKDF-Expand operation for TLS v1.3 key derivation (with
