@@ -72,14 +72,7 @@ impl RNG {
     /// A Result which is Ok(RNG) on success or an Err containing the wolfSSL
     /// library return code on failure.
     pub fn new() -> Result<Self, i32> {
-        let mut rng: MaybeUninit<RNG> = MaybeUninit::uninit();
-        let rc = unsafe { ws::wc_InitRng(&mut (*rng.as_mut_ptr()).wc_rng) };
-        if rc == 0 {
-            let rng = unsafe { rng.assume_init() };
-            Ok(rng)
-        } else {
-            Err(rc)
-        }
+        RNG::new_ex(None, None)
     }
 
     /// Initialize a new `RNG` instance with optional heap and device ID.
@@ -128,18 +121,7 @@ impl RNG {
     /// A Result which is Ok(RNG) on success or an Err containing the wolfSSL
     /// library return code on failure.
     pub fn new_with_nonce<T>(nonce: &mut [T]) -> Result<Self, i32> {
-        let ptr = nonce.as_mut_ptr() as *mut u8;
-        let size: u32 = (nonce.len() * size_of::<T>()) as u32;
-        let mut rng: MaybeUninit<RNG> = MaybeUninit::uninit();
-        let rc = unsafe {
-            ws::wc_InitRngNonce(&mut (*rng.as_mut_ptr()).wc_rng, ptr, size)
-        };
-        if rc == 0 {
-            let rng = unsafe { rng.assume_init() };
-            Ok(rng)
-        } else {
-            Err(rc)
-        }
+        RNG::new_with_nonce_ex(nonce, None, None)
     }
 
     /// Initialize a new `RNG` instance and provide a nonce input.
